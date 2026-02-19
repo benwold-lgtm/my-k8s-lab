@@ -4,13 +4,14 @@ metadata:
   name: nvidia-gpu-test
   namespace: default
 spec:
-  # This tells Kubernetes NOT to run on the master node
   nodeSelector:
     kubernetes.io/hostname: k8s-worker1 
   containers:
   - name: cuda-container
-    image: nvcr.io/nvidia/k8s/cuda-sample:vectoradd-amd64
+    image: ubuntu:latest
+    # We use 'sleep' because a raw Ubuntu image exits immediately otherwise
+    command: ["/bin/bash", "-c", "--"]
+    args: ["while true; do sleep 30; done;"]
     resources:
       limits:
-        nvidia.com/gpu: 1 # The scheduler looks for this!
-        
+        nvidia.com/gpu: 1

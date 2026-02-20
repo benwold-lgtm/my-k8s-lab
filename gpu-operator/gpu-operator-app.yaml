@@ -13,11 +13,11 @@ spec:
       values: |
         driver:
           enable: true
-          repository: nvcr.io/nvidia/driver
+          repository: nvcr.io/nvidia/
           version: "550.54.15"  # A broadly compatible stable version
-          image: "nvcr.io/nvidia/driver"
-          imagePullPolicy: IfNotPResent
-          # We can also try removing the OS suffix if it's causing the 'NotFound'
+          image: "driver"
+          # # This tells the operator: [repository]/[image]:[version]-[OS]
+          # If it still appends ubuntu24.04 and fails, we will use the 'FullImageName' trick.
   destination:
     server: https://kubernetes.default.svc
     namespace: gpu-operator # Installation Location

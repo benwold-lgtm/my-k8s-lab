@@ -14,7 +14,7 @@ spec:
         driver:
           enable: true
           repository: nvcr.io/nvidia/
-          image: "driver"
+          image: driver
           version: "550.54.15"  # A broadly compatible stable version
           # This is the magic flag to stop the 'stuttering' URL
           useFullImageName: false 

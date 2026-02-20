@@ -9,6 +9,12 @@ spec:
     repoURL: https://helm.ngc.nvidia.com/nvidia
     chart: gpu-operator
     targetRevision: v24.9.0
+    helm:
+      values: |
+        driver:
+          repository: nvcr.io/nvidia
+          version: "550.54.15"  # A broadly compatible stable version
+          # We can also try removing the OS suffix if it's causing the 'NotFound'
   destination:
     server: https://kubernetes.default.svc
     namespace: gpu-operator # Installation Location

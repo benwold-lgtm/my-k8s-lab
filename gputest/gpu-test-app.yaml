@@ -1,17 +1,21 @@
-apiVersion: v1
-kind: Pod
+apiVersion: apps/v1
+kind: Deployment  # Changed from Pod to Deployment for easier scaling
 metadata:
-  name: nvidia-gpu-test
-  namespace: default
+  name: gpu-workload-pool
 spec:
-  nodeSelector:
-    kubernetes.io/hostname: k8s-worker1 
-  containers:
-  - name: cuda-container
-    image: ubuntu:latest
-    # We use 'sleep' because a raw Ubuntu image exits immediately otherwise
-    command: ["/bin/bash", "-c", "--"]
-    args: ["while true; do sleep 30; done;"]
-    resources:
-      limits:
-        nvidia.com/gpu: 1
+  replicas: 2     # This will put one pod on each worker!
+  selector:
+    matchLabels:
+      app: gpu-test
+  template:
+    metadata:
+      labels:
+        app: gpu-test
+    spec:
+      containers:
+      - name: cuda-container
+        image: ubuntu:latest
+        command: ["/bin/bash", "-c", "while true; do sleep 30; done"]
+        resources:
+          limits:
+            nvidia.com/gpu: 1

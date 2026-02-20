@@ -12,8 +12,11 @@ spec:
     helm:
       values: |
         driver:
-          repository: nvcr.io/nvidia
+          enable: true
+          repository: nvcr.io/nvidia/driver
           version: "550.54.15"  # A broadly compatible stable version
+          image: "nvcr.io/nvidia/driver"
+          imagePullPolicy: IfNotPResent
           # We can also try removing the OS suffix if it's causing the 'NotFound'
   destination:
     server: https://kubernetes.default.svc

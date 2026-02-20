@@ -13,16 +13,9 @@ spec:
       values: |
         driver:
           enable: true
-          repository: nvcr.io/nvidia/
-          image: driver
-          version: "550.54.15"  # A broadly compatible stable version
-          # This is the magic flag to stop the 'stuttering' URL
-          useFullImageName: false 
-          # Or, if the chart supports it, we provide the image exactly:
-          imageFullName: "nvcr.io/nvidia/driver:550.54.14-ubuntu22.04"
-          # # This tells the operator: [repository]/[image]:[version]-[OS]
-          # If it still appends ubuntu24.04 and fails, we will use the 'FullImageName' trick.
-          imageFullName: "nvcr.io/nvidia/driver:550.54.14-ubuntu22.04"
+          image:
+            imageFullName: "nvcr.io/nvidia/driver:550.54.14-ubuntu22.04"
+                   
   destination:
     server: https://kubernetes.default.svc
     namespace: gpu-operator # Installation Location

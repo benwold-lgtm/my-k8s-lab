@@ -1,0 +1,17 @@
+project: default
+source:
+  repoURL: https://charts.bitnami.com/bitnami
+  targetRevision: 22.4.0
+  helm:
+    parameters:
+      - name: service.type
+        value: ClusterIP
+      - name: replicaCount
+        value: '2'
+  chart: nginx
+destination:
+  server: https://kubernetes.default.svc
+  namespace: default
+syncPolicy:
+  automated:
+    enabled: true

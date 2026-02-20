@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: gpu-operator
-  namespace: argocd   # Management Location
+  namespace: argocd
 spec:
   project: default
   source:
@@ -12,13 +12,12 @@ spec:
     helm:
       values: |
         driver:
-          enable: true
+          enabled: true
           image:
-            imageFullName: "nvcr.io/nvidia/driver:550.54.14-ubuntu24.04"
-
+            imageFullName: "nvcr.io/nvidia/driver:550.54.14-ubuntu22.04"
   destination:
     server: https://kubernetes.default.svc
-    namespace: gpu-operator # Installation Location
+    namespace: gpu-operator
   syncPolicy:
     automated:
       prune: true

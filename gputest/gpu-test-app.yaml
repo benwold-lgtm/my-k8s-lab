@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment  # Changed from Pod to Deployment for easier scaling
 metadata:
   name: gpu-workload-pool
+  namespace: default
 spec:
   replicas: 2     # This will put one pod on each worker!
   selector:

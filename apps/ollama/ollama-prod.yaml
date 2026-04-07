@@ -1,8 +1,9 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ollama
-  namespace: default
+  name: ollama-deployment
+  labels:
+    app: ollama
 spec:
   replicas: 1
   selector:
@@ -13,37 +14,57 @@ spec:
       labels:
         app: ollama
     spec:
-      # Ensures the pod lands on your 24GB NUC node
+      # This ensures the pod lands on your 24GB k8s-worker1
       nodeSelector:
         capacity: high-mem
+      
+      # Step 1: The CI/CD "Auto-Puller"
+      initContainers:
+      - name: model-puller
+        image: ollama/ollama:latest
+        command: ["/bin/sh", "-c"]
+        # Start server, wait for it to breathe, pull model, then shut down so main container can start
+        args:
+          - "ollama serve & sleep 10 && ollama pull llama2 && pkill ollama"
+        volumeMounts:
+        - name: model-storage
+          mountPath: /root/.ollama/models
+
+      # Step 2: The Main Ollama Service
       containers:
       - name: ollama
         image: ollama/ollama:latest
         ports:
         - containerPort: 11434
           name: ollama-port
-        env:
-        - name: OLLAMA_MODELS
-          value: "/root/.ollama/models"
+        resources:
+          requests:
+            memory: "16Gi"
+            cpu: "4"
+          limits:
+            memory: "20Gi" 
+            cpu: "8"
         volumeMounts:
         - name: model-storage
           mountPath: /root/.ollama/models
+
+      # Step 3: The Persistent Storage Link
       volumes:
       - name: model-storage
         nfs:
           server: 192.168.1.250
           path: /NFS_LABFILES/ollama_data
+
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: ollama-service
-  namespace: default
 spec:
+  type: ClusterIP
   selector:
     app: ollama
   ports:
-  - protocol: TCP
-    port: 11434
-    targetPort: 11434
-  type: ClusterIP
+    - protocol: TCP
+      port: 11434
+      targetPort: 11434

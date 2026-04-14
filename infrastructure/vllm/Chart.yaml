@@ -1,0 +1,6 @@
+apiVersion: v2
+name: vllm-stack
+description: Production-grade vLLM serving on GPU
+type: application
+version: 0.1.0
+appVersion: "1.0"

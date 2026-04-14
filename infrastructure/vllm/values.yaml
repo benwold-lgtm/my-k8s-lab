@@ -1,0 +1,21 @@
+replicaCount: 1
+
+image:
+  repository: vllm/vllm-openai
+  tag: latest # Or a specific version like v0.7.0
+  pullPolicy: IfNotPresent
+
+model:
+  name: "meta-llama/Llama-3.1-8B-Instruct" # Change this to swap models
+  downloadDir: "/data"
+
+resources:
+  limits:
+    nvidia.com/gpu: 1
+  requests:
+    cpu: 2
+    memory: 8Gi
+
+storage:
+  className: local-path # Using your fast 2TB NVMe!
+  size: 50Gi

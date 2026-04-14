@@ -21,20 +21,33 @@ spec:
             - "{{ .Values.model.name }}"
             - "--download-dir"
             - "{{ .Values.model.downloadDir }}"
+          env:
+            - name: HF_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hf-token-secret
+                  key: token 
           ports:
             - containerPort: 8000
           volumeMounts:
             - name: model-data
               mountPath: /data
-            - name: shm # Required for vLLM performance
+            - name: shm 
               mountPath: /dev/shm
           resources:
             limits:
+              cpu: "8"
+              memory: "32Gi"  
+              nvidia.com/gpu: 1
+            requests:
+              cpu: "4"
+              memory: "16Gi"
               nvidia.com/gpu: 1
       volumes:
         - name: model-data
           persistentVolumeClaim:
-            claimName: vllm-models-pvc
+            claimName: vllm-models-pvc  # This points to your PVC file
         - name: shm
           emptyDir:
             medium: Memory
+            sizeLimit: 8Gi

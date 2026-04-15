@@ -22,6 +22,8 @@ spec:
             - "google/gemma-4-26b-a4b-it"
             - "--quantization"
             - "awq"                    # REDUCES VRAM FROM 60GB TO 15GB
+            - "--download-dir"
+            - "/data"                  # USES HOST PATH FOR MODEL STORAGE
             - "--gpu-memory-utilization"
             - "0.85"                   # LEAVES ROOM FOR THE SYSTEM
             - "--max-model-len"
@@ -52,8 +54,9 @@ spec:
               nvidia.com/gpu: 1
       volumes:
         - name: model-data
-          persistentVolumeClaim:
-            claimName: vllm-models-pvc  # This points to your PVC file
+          hostPath:
+          path: /mnt/k8s_pv/vllm-models  # This should match the path in your PVC file
+          type: Directory
         - name: shm
           emptyDir:
             medium: Memory

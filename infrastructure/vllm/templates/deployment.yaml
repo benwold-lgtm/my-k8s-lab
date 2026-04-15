@@ -22,15 +22,16 @@ spec:
           args:
             - |
               set -e
-              echo "--- STAGE 1: FORCING TRANSFORMERS UPDATE ---"
-              pip install --no-cache-dir "transformers>=5.5.0" "huggingface-hub>=1.9.1" --force-reinstall
-              echo "--- STAGE 2: LAUNCHING GEMMA 4 SERVER ---"
+              #echo "--- STAGE 1: FORCING TRANSFORMERS UPDATE ---"
+              #pip install --no-cache-dir "transformers>=5.5.0" "huggingface-hub>=1.9.1" --force-reinstall
+              echo "--- LAUNCHING MISTRAL_NEMO SERVER ---"
               python3 -m vllm.entrypoints.openai.api_server \
-                --model google/gemma-4-26b-a4b-it \
-                --quantization awq \
+                --model mistralai/Mistral-Nemo-Instruct-2407 \
+                #--quantization awq \
+                --tokenizer-mode mistral \
                 --download-dir /data \
                 --gpu-memory-utilization 0.85 \
-                --max-model-len 4096 \
+                --max-model-len 16384 \
                 --trust-remote-code
           env:
             - name: HF_TOKEN

@@ -6,7 +6,7 @@ image:
   pullPolicy: Always
 
 model:
-  name: "google/gemma-4-26b-a4b-it" # Change this to swap models
+  name: "mistralai/Mistral-Nemo-Instruct-2407" # Change this to swap models
   downloadDir: "/data"
 
 resources:
@@ -14,7 +14,7 @@ resources:
     nvidia.com/gpu: 1
   requests:
     cpu: 2
-    memory: 8Gi
+    memory: 16Gi
 
 storage:
   className: local-path # Using your fast 2TB NVMe!

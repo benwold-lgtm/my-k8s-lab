@@ -21,25 +21,25 @@ spec:
           command: ["/bin/sh", "-c"] 
           args:
             - |
-              # Force install the required version despite the vLLM conflict
-              pip install --no-cache-dir "transformers==5.5.0" "huggingface-hub>=1.9.1" --force-reinstall
-              
-              # Start the server using the python module directly
+              set -e
+              echo "--- STAGE 1: FORCING TRANSFORMERS UPDATE ---"
+              pip install --no-cache-dir "transformers>=5.5.0" "huggingface-hub>=1.9.1" --force-reinstall
+              echo "--- STAGE 2: LAUNCHING GEMMA 4 SERVER ---"
               python3 -m vllm.entrypoints.openai.api_server \
-              --model google/gemma-4-26b-a4b-it \
-              --quantization awq \
-              --download-dir /data \
-              --gpu-memory-utilization 0.90 \
-              --max-model-len 4096 \
-              --trust-remote-code
+                --model google/gemma-4-26b-a4b-it \
+                --quantization awq \
+                --download-dir /data \
+                --gpu-memory-utilization 0.85 \
+                --max-model-len 4096 \
+                --trust-remote-code
           env:
             - name: HF_TOKEN
               valueFrom:
                 secretKeyRef:
                   name: hf-token-secret
                   key: token
-            - name: VLLM_ENABLE_CUDA_COMPATIBILITY
-              value: "0"
+            - name: VLLM_MOE_TOPK
+              value: "8"
           ports:
             - containerPort: 8000
           volumeMounts:

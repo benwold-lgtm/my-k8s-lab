@@ -16,18 +16,22 @@ spec:
         kubernetes.io/hostname: bengpu1
       containers:
         - name: vllm-container
-          image: "vllm/vllm-openai:latest" 
+          image: "vllm/vllm-openai:gemma4"
+          #we use this command to run the pip fix and the server in one squence.
+          command: ["/bin/sh", "-c"] 
           args:
-            - "--model"
-            - "google/gemma-4-26b-a4b-it"
-            - "--quantization"
-            - "awq"                    # REDUCES VRAM FROM 60GB TO 15GB
-            - "--download-dir"
-            - "/data"                  # USES HOST PATH FOR MODEL STORAGE
-            - "--gpu-memory-utilization"
-            - "0.85"                   # LEAVES ROOM FOR THE SYSTEM
-            - "--max-model-len"
-            - "4096"                   # SMALLER CONTEXT = FASTER BOOT
+            - |
+              # Force install the required version despite the vLLM conflict
+              pip install --no-cache-dir "transformers==5.5.0" "huggingface-hub>=1.9.1" --force-reinstall
+              
+              # Start the server using the python module directly
+              python3 -m vllm.entrypoints.openai.api_server \
+              --model google/gemma-4-26b-a4b-it \
+              --quantization awq \
+              --download-dir /data \
+              --gpu-memory-utilization 0.90 \
+              --max-model-len 4096 \
+              --trust-remote-code
           env:
             - name: HF_TOKEN
               valueFrom:

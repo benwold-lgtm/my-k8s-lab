@@ -16,7 +16,7 @@ spec:
         kubernetes.io/hostname: bengpu1
       containers:
         - name: vllm-container
-          image: "vllm/vllm-openai:gemma4"
+          image: "vllm/vllm-openai:latest"
           #we use this command to run the pip fix and the server in one squence.
           command: ["/bin/sh", "-c"] 
           args:

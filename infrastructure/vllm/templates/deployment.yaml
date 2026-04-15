@@ -30,8 +30,8 @@ spec:
                 #--quantization awq \
                 --tokenizer-mode mistral \
                 --download-dir /data \
-                --gpu-memory-utilization 0.85 \
-                --max-model-len 16384 \
+                --gpu-memory-utilization 0.80 \
+                --max-model-len 8192 \
                 --trust-remote-code
           env:
             - name: HF_TOKEN
@@ -41,6 +41,8 @@ spec:
                   key: token
             - name: VLLM_MOE_TOPK
               value: "8"
+            -name: PYTORCH_ALLOC_CONF
+              value: "expandable_segments:True"
           ports:
             - containerPort: 8000
           volumeMounts:

@@ -17,16 +17,17 @@ spec:
       containers:
         - name: vllm-container
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           command: ["python3", "-m", "vllm.entrypoints.openai.api_server"]
           args:
             - "--model"
-            - "google/gemma-4-26b-a4b-it"
+            - "{{ .Values.model.name }}"
             - "--quantization"
             - "awq" # OR "squeezellm" / "fp8" if available for this model
             - "--gpu-memory-utilization"
-            - "0.95"
+            - "0.90"
             - "--max-model-len"
-            - "32768"
+            - "8192"
             - "{{ .Values.model.name }}"
             - "--download-dir"
             - "{{ .Values.model.downloadDir }}"

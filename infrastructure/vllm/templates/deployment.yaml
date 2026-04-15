@@ -59,9 +59,8 @@ spec:
               nvidia.com/gpu: 1
       volumes:
         - name: model-data
-          hostPath:
-            path: /mnt/nvme/ai-stack/vllm/models  # This should match the path in your PVC file
-            type: DirectoryOrCreate
+          persistentVolumeClaim:
+            claimName: vllm-models-pvc # Matches the name in step 1
         - name: shm
           emptyDir:
             medium: Memory

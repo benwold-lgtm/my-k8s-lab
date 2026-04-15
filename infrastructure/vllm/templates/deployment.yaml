@@ -14,6 +14,14 @@ spec:
     spec:
       nodeSelector:
         kubernetes.io/hostname: bengpu1
+      tolerations:
+        - key: "nvidia.com/gpu"
+          operator: "Exists"
+          effect: "NoSchedule"
+        - key: "sku"
+          operator: "Equal"
+          value: "gpu"
+          effect: "NoSchedule"
       containers:
         - name: vllm-container
           image: "vllm/vllm-openai:latest"

@@ -6,7 +6,7 @@ image:
   pullPolicy: IfNotPresent
 
 model:
-  name: "google/gemma-4-26b-a4b-it" # Change this to swap models
+  name: "google/gemma-4" # Change this to swap models
   downloadDir: "/data"
 
 resources:

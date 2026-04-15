@@ -12,12 +12,21 @@ spec:
       labels:
         app: vllm
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: bengpu1
       containers:
         - name: vllm-container
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           command: ["python3", "-m", "vllm.entrypoints.openai.api_server"]
           args:
             - "--model"
+            - "google/gemma-4-26b-a4b-it"
+            - "--quantization"
+            - "awq" # OR "squeezellm" / "fp8" if available for this model
+            - "--gpu-memory-utilization"
+            - "0.95"
+            - "--max-model-len"
+            - "32768"
             - "{{ .Values.model.name }}"
             - "--download-dir"
             - "{{ .Values.model.downloadDir }}"

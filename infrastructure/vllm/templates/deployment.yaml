@@ -55,8 +55,8 @@ spec:
       volumes:
         - name: model-data
           hostPath:
-          path: /mnt/k8s_pv/vllm-models  # This should match the path in your PVC file
-          type: Directory
+            path: /mnt/k8s_pv/vllm-models  # This should match the path in your PVC file
+            type: Directory
         - name: shm
           emptyDir:
             medium: Memory

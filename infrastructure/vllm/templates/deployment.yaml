@@ -31,7 +31,7 @@ spec:
             - |
               set -e
               #echo "--- STAGE 1: FORCING TRANSFORMERS UPDATE ---"
-              echo "--- LAUNCHING MISTRAL_NEMO FP8 ---"
+              echo "--- LAUNCHING MISTRAL_NEMO FP8 on NFS---"
               python3 -m vllm.entrypoints.openai.api_server \
                 --model mistralai/Mistral-Nemo-Instruct-FP8-2407 \
                 --tokenizer-mode mistral \
@@ -46,14 +46,12 @@ spec:
                 secretKeyRef:
                   name: hf-token-secret
                   key: token
-            - name: VLLM_MOE_TOPK
-              value: "8"
             - name: PYTORCH_ALLOC_CONF
               value: "expandable_segments:True"
           ports:
             - containerPort: 8000
           volumeMounts:
-            - name: model-data
+            - name: data-vol
               mountPath: /data
             - name: shm 
               mountPath: /dev/shm
@@ -67,9 +65,9 @@ spec:
               memory: "16Gi"
               nvidia.com/gpu: 1
       volumes:
-        - name: model-data
+        - name: data-vol
           persistentVolumeClaim:
-            claimName: vllm-models-pvc # Matches the name in step 1
+            claimName: vllm-models-nfs-pvc # Matches the name in step 1
         - name: shm
           emptyDir:
             medium: Memory

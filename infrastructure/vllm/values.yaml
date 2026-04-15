@@ -2,8 +2,8 @@ replicaCount: 1
 
 image:
   repository: vllm/vllm-openai
-  tag: gemma4 # Or a specific version like v0.7.0
-  pullPolicy: IfNotPresent
+  tag: latest # Or a specific version like v0.7.0
+  pullPolicy: Always
 
 model:
   name: "google/gemma-4-26b-a4b-it" # Change this to swap models

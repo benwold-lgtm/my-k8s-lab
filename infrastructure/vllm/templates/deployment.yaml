@@ -16,7 +16,7 @@ spec:
         kubernetes.io/hostname: bengpu1
       containers:
         - name: vllm-container
-          image: "vllm/vllm-openai:v0.19.0" # Use the explicit version for Gemma 4
+          image: "vllm/vllm-openai:latest" 
           args:
             - "--model"
             - "google/gemma-4-26b-a4b-it"
@@ -55,8 +55,8 @@ spec:
       volumes:
         - name: model-data
           hostPath:
-            path: /mnt/k8s_pv/vllm-models  # This should match the path in your PVC file
-            type: Directory
+            path: /mnt/nvme/ai-stack/vllm/models  # This should match the path in your PVC file
+            type: DirectoryOrCreate
         - name: shm
           emptyDir:
             medium: Memory

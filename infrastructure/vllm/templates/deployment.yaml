@@ -40,7 +40,7 @@ spec:
             - name: VLLM_MOE_TOPK
               value: "8"
             - name: PYTORCH_ALLOC_CONF
-             value: "expandable_segments:True"
+              value: "expandable_segments:True"
           ports:
             - containerPort: 8000
           volumeMounts:

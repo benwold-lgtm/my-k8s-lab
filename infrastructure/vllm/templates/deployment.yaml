@@ -23,11 +23,9 @@ spec:
             - |
               set -e
               #echo "--- STAGE 1: FORCING TRANSFORMERS UPDATE ---"
-              #pip install --no-cache-dir "transformers>=5.5.0" "huggingface-hub>=1.9.1" --force-reinstall
               echo "--- LAUNCHING MISTRAL_NEMO SERVER ---"
               python3 -m vllm.entrypoints.openai.api_server \
                 --model mistralai/Mistral-Nemo-Instruct-2407 \
-                #--quantization awq \
                 --tokenizer-mode mistral \
                 --download-dir /data \
                 --gpu-memory-utilization 0.80 \
@@ -41,8 +39,8 @@ spec:
                   key: token
             - name: VLLM_MOE_TOPK
               value: "8"
-            -name: PYTORCH_ALLOC_CONF
-              value: "expandable_segments:True"
+            - name: PYTORCH_ALLOC_CONF
+             value: "expandable_segments:True"
           ports:
             - containerPort: 8000
           volumeMounts:

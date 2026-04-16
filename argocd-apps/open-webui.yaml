@@ -8,7 +8,7 @@ spec:
   source:
     chart: open-webui
     repoURL: https://helm.openwebui.com/
-    targetRevision: *
+    targetRevision: v0.8.6
     helm:
       values: |
         replicaCount: 1

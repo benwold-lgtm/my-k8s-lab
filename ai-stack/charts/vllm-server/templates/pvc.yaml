@@ -9,4 +9,16 @@ spec:
   storageClassName: local-path # This triggers your NVMe provisioner
   resources:
     requests:
-      storage: 50Gi
+      storage: 50GiapiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: vllm-models-nfs-pvc  # Matching the name used in your deployment.yaml
+  namespace: ai-stack
+spec:
+  accessModes:
+    - ReadWriteMany          # Must match the PV
+  storageClassName: ""       # Must be empty to bind to a static PV
+  resources:
+    requests:
+      storage: 500Gi         # Must match the PV capacity
+  volumeName: nfs-models-pv  # The explicit "handshake" to your PV

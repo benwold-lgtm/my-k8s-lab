@@ -2,20 +2,30 @@ replicaCount: 1
 
 image:
   repository: vllm/vllm-openai
-  tag: latest # Or a specific version like v0.7.0
+  tag: latest 
   pullPolicy: Always
 
 model:
-  name: "mistralai/Mistral-Nemo-Instruct-2407" # Change this to swap models
+  name: "mistralai/Mistral-Nemo-Instruct-FP8-2407" # Corrected to FP8 to match your working load
   downloadDir: "/data"
 
 resources:
   limits:
+    cpu: "8"
+    memory: "32Gi"
     nvidia.com/gpu: 1
   requests:
-    cpu: 2
-    memory: 16Gi
+    cpu: "4"
+    memory: "16Gi"
+    nvidia.com/gpu: 1
 
-storage:
-  className: local-path # Using your fast 2TB NVMe!
-  size: 50Gi
+# CORRECTION: hostname is the specific key for a single node
+nodeSelector:
+  kubernetes.io/hostname: bengpu1 
+
+# CORRECTION: Fixed the syntax error (was node=role, should be node-role)
+gpuNodeSelector:
+  node-role.kubernetes.io/gpunode: "true"
+
+persistence:
+  pvcName: vllm-models-nfs-pvc

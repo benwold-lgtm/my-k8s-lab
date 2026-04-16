@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: master-app
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/benwold-lgtm/my-k8s-lab'
+    targetRevision: HEAD
+    path: argocd-apps  # THIS is the magic line
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: argocd # Apps usually live in the argocd namespace
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

@@ -1,0 +1,45 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: open-webui
+  namespace: argocd
+spec:
+  project: default
+  source:
+    chart: open-webui
+    repoURL: https://helm.openwebui.com/
+    targetRevision: 0.1.x
+    helm:
+      values: |
+        replicaCount: 1
+        
+        # Connection to your vLLM server on bengpu1
+        extraEnvVars:
+          - name: OPENAI_API_BASE_URL
+            value: "http://192.168.1.112:30000/v1"
+          - name: OPENAI_API_KEY
+            value: "not-needed"
+          - name: ENABLE_OLLAMA_API
+            value: "false"
+
+        # Using your existing local-path-storage
+        persistence:
+          enabled: true
+          size: 10Gi
+          storageClass: "local-path" 
+
+        service:
+          type: NodePort
+          port: 8080
+          nodePort: 30080
+  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ai-stack
+  
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

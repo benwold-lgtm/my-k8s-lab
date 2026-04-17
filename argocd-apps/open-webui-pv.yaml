@@ -9,7 +9,7 @@ spec:
   accessModes:
     - ReadWriteMany
   persistentVolumeReclaimPolicy: Retain
-  storageClassName: "" # Keep empty to ensure it matches the PVC exactly
+  storageClassName: "manual" # Keep empty to ensure it matches the PVC exactly
   nfs:
     path: /NFS_K8S_PV/open-webui # I recommend a sub-folder to keep it clean
     server: 192.168.1.250

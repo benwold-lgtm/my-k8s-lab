@@ -13,3 +13,6 @@ spec:
   nfs:
     path: /NFS_K8S_PV/open-webui # I recommend a sub-folder to keep it clean
     server: 192.168.1.250
+  claimRef:
+    namespace: ai-stack
+    name: open-webui  

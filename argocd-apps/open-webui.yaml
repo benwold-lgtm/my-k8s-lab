@@ -25,7 +25,7 @@ spec:
         # Using your existing local-path-storage
         persistence:
           enabled: true
-          existingClaim: ""
+          existingClaim: "open-webui"
           storageClass: "manual"
           size: 10Gi
           accessMode: ReadWriteMany 

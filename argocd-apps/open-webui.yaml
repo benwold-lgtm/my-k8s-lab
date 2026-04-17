@@ -26,7 +26,7 @@ spec:
         persistence:
           enabled: true
           existingClaim: ""
-          storageClass: ""
+          storageClass: "manual"
           size: 10Gi
           accessMode: ReadWriteMany 
 

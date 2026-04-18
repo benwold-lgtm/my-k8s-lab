@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/benwold-lgtm//MY-K8S-LAB
+    repoURL: https://github.com/benwold-lgtm/MY-K8S-LAB
     targetRevision: HEAD
     path: ai-stack/charts/open-webui
     helm:

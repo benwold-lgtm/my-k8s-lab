@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: open-webui
+  namespace: open-webui
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: open-webui
+  template:
+    metadata:
+      labels:
+        app: open-webui
+    spec:
+      containers:
+        - name: open-webui
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 8080
+          env:
+            - name: OPENAI_API_BASE_URL
+              value: {{ .Values.vllm.baseUrl | quote }}
+            - name: OPENAI_API_KEY
+              value: {{ .Values.vllm.apiKey | quote }}
+            - name: WEBUI_AUTH
+              value: {{ .Values.auth.enabled | toString | quote }}
+          volumeMounts:
+            - name: webui-data
+              mountPath: /app/backend/data
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 5
+      volumes:
+        - name: webui-data
+          persistentVolumeClaim:
+            claimName: open-webui-pvc

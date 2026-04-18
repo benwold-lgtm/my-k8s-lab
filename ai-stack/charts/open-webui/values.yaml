@@ -1,0 +1,22 @@
+image:
+  repository: ghcr.io/open-webui/open-webui
+  tag: main
+  pullPolicy: Always
+
+replicaCount: 1
+
+service:
+  type: NodePort
+  port: 8080
+  nodePort: 30080
+
+vllm:
+  baseUrl: "http://192.168.1.112:30000/v1"   # ← replace XXX with bengpu1's IP
+  apiKey: "not-needed"
+
+auth:
+  enabled: false   # flip to true if you want login prompt on LAN
+
+storage:
+  size: 5Gi
+  storageClassName: "nfs-client"  # adjust to match your storageclass

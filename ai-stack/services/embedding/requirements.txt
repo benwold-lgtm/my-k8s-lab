@@ -4,3 +4,4 @@ sentence-transformers==3.0.0
 torch==2.3.0
 numpy==1.26.4
 pydantic==2.7.0
+einops==0.7.0

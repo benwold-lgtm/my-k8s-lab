@@ -1,0 +1,22 @@
+image:
+  repository: ghcr.io/benwold-lgtm/embedding
+  tag: latest
+  pullPolicy: Always
+
+replicaCount: 1
+
+service:
+  type: NodePort
+  port: 8001
+  nodePort: 30082
+
+model:
+  name: "nomic-ai/nomic-embed-text-v1.5"
+
+resources:
+  requests:
+    memory: "1Gi"
+    cpu: "500m"
+  limits:
+    memory: "3Gi"    # nomic-embed-text needs ~2GB RAM on CPU
+    cpu: "2000m"

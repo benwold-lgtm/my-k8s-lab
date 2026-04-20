@@ -1,0 +1,6 @@
+apiVersion: v2
+name: embedding
+description: CPU-based Embedding Service using nomic-embed-text
+type: application
+version: 0.1.0
+appVersion: "latest"

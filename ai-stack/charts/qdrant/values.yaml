@@ -1,0 +1,30 @@
+image:
+  repository: qdrant/qdrant
+  tag: v1.9.0
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+service:
+  type: NodePort
+  port: 6333           # REST API
+  grpcPort: 6334       # gRPC API
+  nodePort: 30333      # external REST access
+  grpcNodePort: 30334  # external gRPC access
+
+storage:
+  size: 20Gi
+  storageClassName: "nfs-client"
+
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+  limits:
+    memory: "2Gi"
+    cpu: "1000m"
+
+# API key for securing Qdrant
+security:
+  apiKey: ""  # leave blank, we use k8s secret
+  secretName: qdrant-secrets

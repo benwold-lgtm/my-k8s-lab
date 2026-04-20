@@ -1,0 +1,25 @@
+image:
+  repository: ghcr.io/benwold-lgtm/ai-agent
+  tag: latest
+  pullPolicy: Always
+
+replicaCount: 1
+
+service:
+  type: ClusterIP      # internal only, Open-WebUI talks to it inside the cluster
+  port: 8000
+
+vllm:
+  baseUrl: "http://192.168.1.112:30000/v1"
+  model: "mistralai/Mistral-Nemo-Instruct-FP8-2407"
+
+secret:
+  name: ai-agent-secrets   # must match the kubectl secret you created earlier
+
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "250m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"

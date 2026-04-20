@@ -11,7 +11,7 @@ service:
   nodePort: 30080
 
 vllm:
-  baseUrl: "http://192.168.1.112:30000/v1"   # ← replace XXX with bengpu1's IP
+  baseUrl: "http://ai-agent.ai-agent.svc.cluster.local:8000/v1"   # ← replace XXX with bengpu1's IP
   apiKey: "not-needed"
 
 auth:

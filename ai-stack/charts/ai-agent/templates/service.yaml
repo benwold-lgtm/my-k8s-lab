@@ -7,6 +7,7 @@ spec:
   type: {{ .Values.service.type }}
   selector:
     app: ai-agent
-  ports:
+    ports:
     - port: {{ .Values.service.port }}
       targetPort: {{ .Values.service.port }}
+      nodePort: {{ .Values.service.nodePort }}

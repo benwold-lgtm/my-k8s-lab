@@ -6,8 +6,9 @@ image:
 replicaCount: 1
 
 service:
-  type: ClusterIP      # internal only, Open-WebUI talks to it inside the cluster
+  type: NodePort      # internal only, Open-WebUI talks to it inside the cluster
   port: 8000
+  nodePort: 30081    # expose on this port on each node
 
 vllm:
   baseUrl: "http://192.168.1.112:30000/v1"

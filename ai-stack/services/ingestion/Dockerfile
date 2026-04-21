@@ -5,14 +5,13 @@ WORKDIR /app
 # Playwright browser binaries land here — shared, accessible to non-root user
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
+COPY requirements.txt .
 RUN apt-get update && apt-get install -y \
     build-essential \
+    && pip install --no-cache-dir -r requirements.txt \
+    && playwright install --with-deps chromium \
+    && chmod -R 755 /ms-playwright \
     && rm -rf /var/lib/apt/lists/*
-
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt && \
-    playwright install --with-deps chromium && \
-    chmod -R 755 /ms-playwright
 
 COPY main.py .
 

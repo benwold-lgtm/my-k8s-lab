@@ -362,13 +362,25 @@ async def ingest_and_move(
 async def watch_folder():
     """Poll WATCH_DIR/<vendor>/ for new files and ingest them.
     Vendor subfolder name becomes both the vendor tag and Qdrant collection."""
+    import logging
+    logger = logging.getLogger("watch_folder")
+    logger.info("Watch folder started: %s (poll every %ss)", WATCH_DIR, WATCH_POLL_INTERVAL)
+
     while True:
         try:
-            for vendor in os.listdir(WATCH_DIR):
-                vendor_dir = os.path.join(WATCH_DIR, vendor)
-                if not os.path.isdir(vendor_dir):
-                    continue
+            entries = os.listdir(WATCH_DIR)
+        except Exception as e:
+            logger.error("Cannot list WATCH_DIR %s: %s", WATCH_DIR, e)
+            await asyncio.sleep(WATCH_POLL_INTERVAL)
+            continue
 
+        for vendor in entries:
+            # Skip non-directories and system/hidden folders
+            vendor_dir = os.path.join(WATCH_DIR, vendor)
+            if not os.path.isdir(vendor_dir) or vendor.startswith((".", "@")):
+                continue
+
+            try:
                 processed_dir = os.path.join(vendor_dir, "processed")
                 os.makedirs(processed_dir, exist_ok=True)
 
@@ -391,11 +403,11 @@ async def watch_folder():
                             row = await cursor.fetchone()
 
                     if row:
-                        # Already completed but file wasn't moved (e.g. previous crash)
                         if row[0] == "completed" and os.path.exists(filepath):
                             os.rename(filepath, os.path.join(processed_dir, filename))
                         continue
 
+                    logger.info("New file detected: %s/%s — queuing ingestion", vendor, filename)
                     now = datetime.utcnow().isoformat()
                     async with aiosqlite.connect(DB_PATH) as db:
                         await db.execute("""
@@ -409,8 +421,8 @@ async def watch_folder():
                         ingest_and_move(doc_id, filename, content, vendor, filepath, processed_dir)
                     )
 
-        except Exception:
-            pass
+            except Exception as e:
+                logger.error("Error processing vendor folder %s: %s", vendor, e)
 
         await asyncio.sleep(WATCH_POLL_INTERVAL)
 

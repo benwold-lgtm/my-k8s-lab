@@ -20,14 +20,16 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 app = FastAPI(title="Ingestion Service")
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-QDRANT_URL     = os.getenv("QDRANT_URL",     "http://qdrant.qdrant.svc.cluster.local:6333")
-QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
-EMBEDDING_URL  = os.getenv("EMBEDDING_URL",  "http://embedding.embedding.svc.cluster.local:8001")
-DB_PATH        = os.getenv("DB_PATH",        "/app/data/ingestion.db")
-FILES_DIR      = os.getenv("FILES_DIR",      "/app/data/files")
-CHUNK_SIZE     = int(os.getenv("CHUNK_SIZE",    "512"))
-CHUNK_OVERLAP  = int(os.getenv("CHUNK_OVERLAP", "50"))
-EMBEDDING_DIM  = int(os.getenv("EMBEDDING_DIM", "768"))
+QDRANT_URL          = os.getenv("QDRANT_URL",          "http://qdrant.qdrant.svc.cluster.local:6333")
+QDRANT_API_KEY      = os.getenv("QDRANT_API_KEY")
+EMBEDDING_URL       = os.getenv("EMBEDDING_URL",       "http://embedding.embedding.svc.cluster.local:8001")
+DB_PATH             = os.getenv("DB_PATH",             "/app/data/ingestion.db")
+FILES_DIR           = os.getenv("FILES_DIR",           "/app/data/files")
+WATCH_DIR           = os.getenv("WATCH_DIR",           "")
+WATCH_POLL_INTERVAL = int(os.getenv("WATCH_POLL_INTERVAL", "60"))
+CHUNK_SIZE          = int(os.getenv("CHUNK_SIZE",          "512"))
+CHUNK_OVERLAP       = int(os.getenv("CHUNK_OVERLAP",       "50"))
+EMBEDDING_DIM       = int(os.getenv("EMBEDDING_DIM",       "768"))
 
 SUPPORTED_EXTENSIONS = {"pdf", "txt", "md"}
 
@@ -63,6 +65,8 @@ async def startup():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     os.makedirs(FILES_DIR, exist_ok=True)
     await init_db()
+    if WATCH_DIR:
+        asyncio.create_task(watch_folder())
 
 # ── Qdrant client ─────────────────────────────────────────────────────────────
 def get_qdrant():
@@ -335,6 +339,81 @@ async def ingest_document_task(
             )
             await db.commit()
         raise
+
+# ── Watch folder ─────────────────────────────────────────────────────────────
+async def ingest_and_move(
+    doc_id: str,
+    filename: str,
+    content: bytes,
+    vendor: str,
+    src_path: str,
+    processed_dir: str,
+):
+    """Ingest a watch-folder file and move it to processed/ on success.
+    Failed files stay in place so the next poll retries them."""
+    try:
+        await ingest_document_task(doc_id, filename, content, vendor, [vendor], "public")
+        if os.path.exists(src_path):
+            os.rename(src_path, os.path.join(processed_dir, filename))
+    except Exception:
+        pass
+
+
+async def watch_folder():
+    """Poll WATCH_DIR/<vendor>/ for new files and ingest them.
+    Vendor subfolder name becomes both the vendor tag and Qdrant collection."""
+    while True:
+        try:
+            for vendor in os.listdir(WATCH_DIR):
+                vendor_dir = os.path.join(WATCH_DIR, vendor)
+                if not os.path.isdir(vendor_dir):
+                    continue
+
+                processed_dir = os.path.join(vendor_dir, "processed")
+                os.makedirs(processed_dir, exist_ok=True)
+
+                for filename in os.listdir(vendor_dir):
+                    filepath = os.path.join(vendor_dir, filename)
+                    if not os.path.isfile(filepath):
+                        continue
+                    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+                    if ext not in SUPPORTED_EXTENSIONS:
+                        continue
+
+                    with open(filepath, "rb") as f:
+                        content = f.read()
+                    doc_id = hashlib.sha256(content).hexdigest()[:16]
+
+                    async with aiosqlite.connect(DB_PATH) as db:
+                        async with db.execute(
+                            "SELECT status FROM documents WHERE id=?", (doc_id,)
+                        ) as cursor:
+                            row = await cursor.fetchone()
+
+                    if row:
+                        # Already completed but file wasn't moved (e.g. previous crash)
+                        if row[0] == "completed" and os.path.exists(filepath):
+                            os.rename(filepath, os.path.join(processed_dir, filename))
+                        continue
+
+                    now = datetime.utcnow().isoformat()
+                    async with aiosqlite.connect(DB_PATH) as db:
+                        await db.execute("""
+                            INSERT OR REPLACE INTO documents
+                            (id, url, collection, vendor, source_type, status, created_at, updated_at)
+                            VALUES (?, ?, ?, ?, 'document', 'pending', ?, ?)
+                        """, (doc_id, filename, vendor, vendor, now, now))
+                        await db.commit()
+
+                    asyncio.create_task(
+                        ingest_and_move(doc_id, filename, content, vendor, filepath, processed_dir)
+                    )
+
+        except Exception:
+            pass
+
+        await asyncio.sleep(WATCH_POLL_INTERVAL)
+
 
 # ── Request/Response models ───────────────────────────────────────────────────
 class IngestRequest(BaseModel):

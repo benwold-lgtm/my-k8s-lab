@@ -40,9 +40,17 @@ spec:
               value: {{ .Values.config.chunkOverlap | quote }}
             - name: EMBEDDING_DIM
               value: {{ .Values.config.embeddingDim | quote }}
+            - name: WATCH_DIR
+              value: {{ if .Values.watchDir.enabled }}{{ .Values.watchDir.mountPath | quote }}{{ else }}""{{ end }}
+            - name: WATCH_POLL_INTERVAL
+              value: {{ .Values.watchDir.pollInterval | quote }}
           volumeMounts:
             - name: ingestion-data
               mountPath: /app/data
+            {{- if .Values.watchDir.enabled }}
+            - name: labfiles
+              mountPath: {{ .Values.watchDir.mountPath }}
+            {{- end }}
           livenessProbe:
             httpGet:
               path: /health
@@ -66,3 +74,9 @@ spec:
         - name: ingestion-data
           persistentVolumeClaim:
             claimName: ingestion-data
+        {{- if .Values.watchDir.enabled }}
+        - name: labfiles
+          hostPath:
+            path: {{ .Values.watchDir.hostPath }}
+            type: Directory
+        {{- end }}

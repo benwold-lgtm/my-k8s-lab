@@ -33,5 +33,11 @@ resources:
   limits:
     memory: "512Mi"
     cpu: "500m"
+watchDir:
+  enabled: true
+  hostPath: /mnt/labfiles
+  mountPath: /mnt/labfiles
+  pollInterval: "60"
+
 nodeSelector:
   kubernetes.io/hostname: bengpu1

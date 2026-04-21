@@ -13,8 +13,8 @@ service:
   grpcNodePort: 30334  # external gRPC access
 
 storage:
-  size: 20Gi
-  storageClassName: "nfs-client"
+  size: 50Gi
+  storageClassName: "local-path"  # adjust to match your storageclass
 
 resources:
   requests:
@@ -28,3 +28,6 @@ resources:
 security:
   apiKey: ""  # leave blank, we use k8s secret
   secretName: qdrant-secrets
+
+nodeSelector:
+  kubernetes.io/hostname: bengpu1

@@ -20,3 +20,5 @@ auth:
 storage:
   size: 5Gi
   storageClassName: "nfs-client"  # adjust to match your storageclass
+nodeSelector:
+  kubernetes.io/hostname: bengpu1

@@ -20,3 +20,5 @@ resources:
   limits:
     memory: "3Gi"    # nomic-embed-text needs ~2GB RAM on CPU
     cpu: "2000m"
+nodeSelector:
+  kubernetes.io/hostname: bengpu1

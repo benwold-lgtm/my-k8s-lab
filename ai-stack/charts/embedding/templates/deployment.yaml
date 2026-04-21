@@ -13,6 +13,7 @@ spec:
       labels:
         app: embedding
     spec:
+      nodeSelector: {{ toYaml .Values.nodeSelector | nindent 8 }}
       containers:
         - name: embedding
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"

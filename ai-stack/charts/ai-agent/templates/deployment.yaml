@@ -13,6 +13,7 @@ spec:
       labels:
         app: ai-agent
     spec:
+      nodeSelector: {{ toYaml .Values.nodeSelector | nindent 8 }} 
       containers:
         - name: ai-agent
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"

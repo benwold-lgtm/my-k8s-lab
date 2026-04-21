@@ -580,12 +580,14 @@ async def delete_document(doc_id: str):
             doc = dict(row)
 
     client = get_qdrant()
-    client.delete(
-        collection_name=doc["collection"],
-        points_selector=Filter(
-            must=[FieldCondition(key="doc_id", match=MatchValue(value=doc_id))]
+    existing = [c.name for c in client.get_collections().collections]
+    if doc["collection"] in existing:
+        client.delete(
+            collection_name=doc["collection"],
+            points_selector=Filter(
+                must=[FieldCondition(key="doc_id", match=MatchValue(value=doc_id))]
+            )
         )
-    )
 
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("DELETE FROM documents WHERE id=?", (doc_id,))

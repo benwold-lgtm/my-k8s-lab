@@ -404,9 +404,12 @@ async def watch_folder():
                             row = await cursor.fetchone()
 
                     if row:
-                        if row[0] == "completed" and os.path.exists(filepath):
+                        status = row[0]
+                        if status == "completed" and os.path.exists(filepath):
                             os.rename(filepath, os.path.join(processed_dir, filename))
-                        continue
+                        if status in ("completed", "processing", "unchanged"):
+                            continue
+                        # Re-queue failed or stuck pending documents
 
                     logger.info("New file detected: %s/%s — queuing ingestion", vendor, filename)
                     now = datetime.utcnow().isoformat()

@@ -1,0 +1,35 @@
+image:
+  repository: ghcr.io/benwold-lgtm/ingestion
+  tag: latest
+  pullPolicy: Always
+
+replicaCount: 1
+
+service:
+  type: NodePort
+  port: 8002
+  nodePort: 30083
+
+qdrant:
+  url: "http://qdrant.qdrant.svc.cluster.local:6333"
+  secretName: qdrant-secrets
+
+embedding:
+  url: "http://embedding.embedding.svc.cluster.local:8001"
+
+config:
+  chunkSize: "512"
+  chunkOverlap: "50"
+  embeddingDim: "768"
+
+storage:
+  size: 5Gi
+  storageClassName: "nfs-client"
+
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "250m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"

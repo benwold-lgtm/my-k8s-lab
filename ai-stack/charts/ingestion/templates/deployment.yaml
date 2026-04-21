@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ingestion
+  namespace: ingestion
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: ingestion
+  template:
+    metadata:
+      labels:
+        app: ingestion
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      containers:
+        - name: ingestion
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 8002
+          env:
+            - name: QDRANT_URL
+              value: {{ .Values.qdrant.url | quote }}
+            - name: QDRANT_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.qdrant.secretName }}
+                  key: QDRANT_API_KEY
+            - name: EMBEDDING_URL
+              value: {{ .Values.embedding.url | quote }}
+            - name: DB_PATH
+              value: "/app/data/ingestion.db"
+            - name: CHUNK_SIZE
+              value: {{ .Values.config.chunkSize | quote }}
+            - name: CHUNK_OVERLAP
+              value: {{ .Values.config.chunkOverlap | quote }}
+            - name: EMBEDDING_DIM
+              value: {{ .Values.config.embeddingDim | quote }}
+          volumeMounts:
+            - name: ingestion-data
+              mountPath: /app/data
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8002
+            initialDelaySeconds: 15
+            periodSeconds: 5
+          resources:
+            requests:
+              memory: {{ .Values.resources.requests.memory }}
+              cpu: {{ .Values.resources.requests.cpu }}
+            limits:
+              memory: {{ .Values.resources.limits.memory }}
+              cpu: {{ .Values.resources.limits.cpu }}
+      volumes:
+        - name: ingestion-data
+          persistentVolumeClaim:
+            claimName: ingestion-data

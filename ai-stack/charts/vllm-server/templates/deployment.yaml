@@ -12,8 +12,7 @@ spec:
       labels:
         app: vllm
     spec:
-      nodeSelector:
-        kubernetes.io/hostname: bengpu1
+      nodeSelector: {{ toYaml .Values.nodeSelector | nindent 8 }}
       tolerations:
         - key: "nvidia.com/gpu"
           operator: "Exists"

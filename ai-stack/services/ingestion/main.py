@@ -1,15 +1,15 @@
 import os
 import re
-import json
 import hashlib
 import asyncio
 import aiosqlite
 import httpx
+import fitz  # pymupdf
 from datetime import datetime
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, UploadFile, File, Form
 from pydantic import BaseModel
 from typing import Optional
-from bs4 import BeautifulSoup
+from crawl4ai import AsyncWebCrawler
 from qdrant_client import QdrantClient
 from qdrant_client.models import (
     Distance, VectorParams, PointStruct, Filter,
@@ -20,46 +20,53 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 app = FastAPI(title="Ingestion Service")
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-QDRANT_URL        = os.getenv("QDRANT_URL", "http://qdrant.qdrant.svc.cluster.local:6333")
-QDRANT_API_KEY    = os.getenv("QDRANT_API_KEY")
-EMBEDDING_URL     = os.getenv("EMBEDDING_URL", "http://embedding.embedding.svc.cluster.local:8001")
-DB_PATH           = os.getenv("DB_PATH", "/app/data/ingestion.db")
-CHUNK_SIZE        = int(os.getenv("CHUNK_SIZE", "512"))
-CHUNK_OVERLAP     = int(os.getenv("CHUNK_OVERLAP", "50"))
-EMBEDDING_DIM     = int(os.getenv("EMBEDDING_DIM", "768"))
+QDRANT_URL     = os.getenv("QDRANT_URL",     "http://qdrant.qdrant.svc.cluster.local:6333")
+QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
+EMBEDDING_URL  = os.getenv("EMBEDDING_URL",  "http://embedding.embedding.svc.cluster.local:8001")
+DB_PATH        = os.getenv("DB_PATH",        "/app/data/ingestion.db")
+FILES_DIR      = os.getenv("FILES_DIR",      "/app/data/files")
+CHUNK_SIZE     = int(os.getenv("CHUNK_SIZE",    "512"))
+CHUNK_OVERLAP  = int(os.getenv("CHUNK_OVERLAP", "50"))
+EMBEDDING_DIM  = int(os.getenv("EMBEDDING_DIM", "768"))
+
+SUPPORTED_EXTENSIONS = {"pdf", "txt", "md"}
 
 # ── Database setup ────────────────────────────────────────────────────────────
 async def init_db():
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("""
             CREATE TABLE IF NOT EXISTS documents (
-                id          TEXT PRIMARY KEY,
-                url         TEXT NOT NULL,
-                collection  TEXT NOT NULL,
-                vendor      TEXT,
-                title       TEXT,
+                id           TEXT PRIMARY KEY,
+                url          TEXT NOT NULL,
+                collection   TEXT NOT NULL,
+                vendor       TEXT,
+                title        TEXT,
                 content_hash TEXT,
-                status      TEXT DEFAULT 'pending',
-                chunk_count INTEGER DEFAULT 0,
-                error       TEXT,
-                created_at  TEXT,
-                updated_at  TEXT,
+                status       TEXT DEFAULT 'pending',
+                chunk_count  INTEGER DEFAULT 0,
+                error        TEXT,
+                source_type  TEXT DEFAULT 'url',
+                created_at   TEXT,
+                updated_at   TEXT,
                 last_checked TEXT
             )
         """)
+        # Migration: add source_type to tables created before this column existed
+        try:
+            await db.execute("ALTER TABLE documents ADD COLUMN source_type TEXT DEFAULT 'url'")
+        except Exception:
+            pass
         await db.commit()
 
 @app.on_event("startup")
 async def startup():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+    os.makedirs(FILES_DIR, exist_ok=True)
     await init_db()
 
 # ── Qdrant client ─────────────────────────────────────────────────────────────
 def get_qdrant():
-    return QdrantClient(
-        url=QDRANT_URL,
-        api_key=QDRANT_API_KEY
-    )
+    return QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY)
 
 # ── Ensure collection exists ──────────────────────────────────────────────────
 async def ensure_collection(collection: str):
@@ -68,65 +75,67 @@ async def ensure_collection(collection: str):
     if collection not in existing:
         client.create_collection(
             collection_name=collection,
-            vectors_config=VectorParams(
-                size=EMBEDDING_DIM,
-                distance=Distance.COSINE
-            )
+            vectors_config=VectorParams(size=EMBEDDING_DIM, distance=Distance.COSINE)
         )
 
 # ── Text chunking ─────────────────────────────────────────────────────────────
 def chunk_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVERLAP) -> list[str]:
-    """Split text into overlapping chunks by word count."""
     words = text.split()
     chunks = []
     start = 0
     while start < len(words):
-        end = start + chunk_size
-        chunk = " ".join(words[start:end])
+        chunk = " ".join(words[start:start + chunk_size])
         if chunk.strip():
             chunks.append(chunk)
         start += chunk_size - overlap
     return chunks
 
-# ── Web fetcher ───────────────────────────────────────────────────────────────
+# ── Web fetcher (Crawl4AI) ────────────────────────────────────────────────────
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
 async def fetch_url(url: str) -> tuple[str, str]:
-    """Fetch URL and return (title, clean_text)."""
-    headers = {
-        "User-Agent": "Mozilla/5.0 (compatible; RAG-Ingestion/1.0)"
-    }
-    async with httpx.AsyncClient(follow_redirects=True, timeout=30.0) as client:
-        response = await client.get(url, headers=headers)
-        response.raise_for_status()
+    """Fetch a URL using a headless browser and return (title, clean_text)."""
+    async with AsyncWebCrawler(headless=True) as crawler:
+        result = await crawler.arun(url=url)
 
-    soup = BeautifulSoup(response.text, "lxml")
+    if not result.success:
+        raise ValueError(f"Failed to crawl {url}: {result.error_message}")
 
-    # Extract title
-    title = ""
-    if soup.title:
-        title = soup.title.string or ""
-
-    # Remove noise elements
-    for tag in soup(["script", "style", "nav", "footer", "header",
-                      "aside", "form", "iframe", "noscript",
-                      "cookie-banner", "advertisement"]):
-        tag.decompose()
-
-    # Extract main content — prefer article/main tags
-    main = soup.find("main") or soup.find("article") or soup.find("body")
-    if main:
-        text = main.get_text(separator=" ", strip=True)
-    else:
-        text = soup.get_text(separator=" ", strip=True)
-
-    # Clean whitespace
+    title = (result.metadata or {}).get("title", "").strip()
+    text = result.markdown or ""
     text = re.sub(r'\s+', ' ', text).strip()
+    return title, text
 
-    return title.strip(), text
+# ── Document extractor ────────────────────────────────────────────────────────
+async def extract_document(filename: str, content: bytes) -> tuple[str, str]:
+    """Extract (title, clean_text) from a PDF, txt, or md file."""
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+
+    if ext not in SUPPORTED_EXTENSIONS:
+        raise ValueError(f"Unsupported file type: .{ext}. Supported: {', '.join(SUPPORTED_EXTENSIONS)}")
+
+    if ext == "pdf":
+        doc = fitz.open(stream=content, filetype="pdf")
+        title = (doc.metadata or {}).get("title", "").strip() or filename
+        pages = [page.get_text() for page in doc]
+        doc.close()
+        text = " ".join(pages)
+    else:
+        title = filename
+        text = content.decode("utf-8", errors="replace")
+
+    text = re.sub(r'\s+', ' ', text).strip()
+    return title, text
+
+# ── File storage ──────────────────────────────────────────────────────────────
+def save_file(doc_id: str, filename: str, content: bytes) -> str:
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "bin"
+    path = os.path.join(FILES_DIR, f"{doc_id}.{ext}")
+    with open(path, "wb") as f:
+        f.write(content)
+    return path
 
 # ── Embedding caller ──────────────────────────────────────────────────────────
 async def embed_texts(texts: list[str]) -> list[list[float]]:
-    """Call embedding service to get vectors."""
     async with httpx.AsyncClient(timeout=60.0) as client:
         response = await client.post(
             f"{EMBEDDING_URL}/v1/embeddings",
@@ -136,19 +145,81 @@ async def embed_texts(texts: list[str]) -> list[list[float]]:
         data = response.json()
         return [item["embedding"] for item in data["data"]]
 
-# ── Core ingestion logic ──────────────────────────────────────────────────────
-async def ingest_url(
+# ── Shared pipeline: chunk → embed → upsert ───────────────────────────────────
+async def run_pipeline(
+    doc_id: str,
+    source: str,
+    title: str,
+    text: str,
+    content_hash: str,
+    collection: str,
+    vendor: str,
+    access_roles: list[str],
+    classification: str,
+    source_type: str,
+) -> int:
+    """Chunk, embed, and upsert to Qdrant. Returns chunk count."""
+    now = datetime.utcnow().isoformat()
+
+    chunks = chunk_text(text)
+    if not chunks:
+        raise ValueError("No chunks generated from content")
+
+    await ensure_collection(collection)
+
+    client = get_qdrant()
+    client.delete(
+        collection_name=collection,
+        points_selector=Filter(
+            must=[FieldCondition(key="doc_id", match=MatchValue(value=doc_id))]
+        )
+    )
+
+    all_embeddings = []
+    for i in range(0, len(chunks), 32):
+        embeddings = await embed_texts(chunks[i:i + 32])
+        all_embeddings.extend(embeddings)
+        await asyncio.sleep(0.1)
+
+    points = []
+    for i, (chunk, embedding) in enumerate(zip(chunks, all_embeddings)):
+        point_id = abs(hash(f"{doc_id}-{i}")) % (2**63)
+        points.append(PointStruct(
+            id=point_id,
+            vector=embedding,
+            payload={
+                "doc_id":         doc_id,
+                "url":            source,
+                "title":          title,
+                "collection":     collection,
+                "vendor":         vendor,
+                "chunk_index":    i,
+                "total_chunks":   len(chunks),
+                "content":        chunk,
+                "access_roles":   access_roles,
+                "classification": classification,
+                "source_type":    source_type,
+                "ingested_at":    now,
+                "content_hash":   content_hash,
+            }
+        ))
+
+    for i in range(0, len(points), 100):
+        client.upsert(collection_name=collection, points=points[i:i + 100])
+
+    return len(chunks)
+
+# ── URL ingestion task ────────────────────────────────────────────────────────
+async def ingest_url_task(
     doc_id: str,
     url: str,
     collection: str,
     vendor: str,
     access_roles: list[str],
-    classification: str
+    classification: str,
 ):
-    """Full ingestion pipeline for a single URL."""
     now = datetime.utcnow().isoformat()
 
-    # Update status to processing
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
             "UPDATE documents SET status=?, updated_at=? WHERE id=?",
@@ -157,13 +228,11 @@ async def ingest_url(
         await db.commit()
 
     try:
-        # 1. Fetch and parse
         title, text = await fetch_url(url)
 
         if len(text) < 100:
             raise ValueError(f"Insufficient content extracted: {len(text)} chars")
 
-        # 2. Check if content changed
         content_hash = hashlib.sha256(text.encode()).hexdigest()
 
         async with aiosqlite.connect(DB_PATH) as db:
@@ -172,7 +241,6 @@ async def ingest_url(
             ) as cursor:
                 row = await cursor.fetchone()
                 if row and row[0] == content_hash:
-                    # Content unchanged — skip re-embedding
                     await db.execute(
                         "UPDATE documents SET status=?, last_checked=?, updated_at=? WHERE id=?",
                         ("unchanged", now, now, doc_id)
@@ -180,74 +248,18 @@ async def ingest_url(
                     await db.commit()
                     return
 
-        # 3. Chunk text
-        chunks = chunk_text(text)
-        if not chunks:
-            raise ValueError("No chunks generated from content")
-
-        # 4. Ensure Qdrant collection exists
-        await ensure_collection(collection)
-
-        # 5. Delete old chunks for this document if re-ingesting
-        client = get_qdrant()
-        client.delete(
-            collection_name=collection,
-            points_selector=Filter(
-                must=[FieldCondition(
-                    key="doc_id",
-                    match=MatchValue(value=doc_id)
-                )]
-            )
+        chunk_count = await run_pipeline(
+            doc_id, url, title, text, content_hash,
+            collection, vendor, access_roles, classification, "url"
         )
 
-        # 6. Embed chunks in batches of 32
-        all_embeddings = []
-        batch_size = 32
-        for i in range(0, len(chunks), batch_size):
-            batch = chunks[i:i + batch_size]
-            embeddings = await embed_texts(batch)
-            all_embeddings.extend(embeddings)
-            await asyncio.sleep(0.1)  # be kind to the embedding service
-
-        # 7. Store in Qdrant with metadata
-        points = []
-        for i, (chunk, embedding) in enumerate(zip(chunks, all_embeddings)):
-            point_id = abs(hash(f"{doc_id}-{i}")) % (2**63)
-            points.append(PointStruct(
-                id=point_id,
-                vector=embedding,
-                payload={
-                    "doc_id":         doc_id,
-                    "url":            url,
-                    "title":          title,
-                    "collection":     collection,
-                    "vendor":         vendor,
-                    "chunk_index":    i,
-                    "total_chunks":   len(chunks),
-                    "content":        chunk,
-                    "access_roles":   access_roles,
-                    "classification": classification,
-                    "ingested_at":    now,
-                    "content_hash":   content_hash
-                }
-            ))
-
-        # Upload in batches of 100
-        for i in range(0, len(points), 100):
-            client.upsert(
-                collection_name=collection,
-                points=points[i:i + 100]
-            )
-
-        # 8. Update tracking DB
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute("""
                 UPDATE documents
-                SET status=?, title=?, content_hash=?,
-                    chunk_count=?, updated_at=?, last_checked=?
+                SET status=?, title=?, content_hash=?, chunk_count=?,
+                    updated_at=?, last_checked=?
                 WHERE id=?
-            """, ("completed", title, content_hash,
-                  len(chunks), now, now, doc_id))
+            """, ("completed", title, content_hash, chunk_count, now, now, doc_id))
             await db.commit()
 
     except Exception as e:
@@ -259,7 +271,72 @@ async def ingest_url(
             await db.commit()
         raise
 
-# ── Request/Response Models ───────────────────────────────────────────────────
+# ── Document ingestion task ───────────────────────────────────────────────────
+async def ingest_document_task(
+    doc_id: str,
+    filename: str,
+    content: bytes,
+    collection: str,
+    vendor: str,
+    access_roles: list[str],
+    classification: str,
+):
+    now = datetime.utcnow().isoformat()
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "UPDATE documents SET status=?, updated_at=? WHERE id=?",
+            ("processing", now, doc_id)
+        )
+        await db.commit()
+
+    try:
+        title, text = await extract_document(filename, content)
+
+        if len(text) < 50:
+            raise ValueError(f"Insufficient content extracted: {len(text)} chars")
+
+        content_hash = hashlib.sha256(text.encode()).hexdigest()
+
+        async with aiosqlite.connect(DB_PATH) as db:
+            async with db.execute(
+                "SELECT content_hash FROM documents WHERE id=?", (doc_id,)
+            ) as cursor:
+                row = await cursor.fetchone()
+                if row and row[0] == content_hash:
+                    await db.execute(
+                        "UPDATE documents SET status=?, last_checked=?, updated_at=? WHERE id=?",
+                        ("unchanged", now, now, doc_id)
+                    )
+                    await db.commit()
+                    return
+
+        save_file(doc_id, filename, content)
+
+        chunk_count = await run_pipeline(
+            doc_id, filename, title, text, content_hash,
+            collection, vendor, access_roles, classification, "document"
+        )
+
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute("""
+                UPDATE documents
+                SET status=?, title=?, content_hash=?, chunk_count=?,
+                    updated_at=?, last_checked=?
+                WHERE id=?
+            """, ("completed", title, content_hash, chunk_count, now, now, doc_id))
+            await db.commit()
+
+    except Exception as e:
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute(
+                "UPDATE documents SET status=?, error=?, updated_at=? WHERE id=?",
+                ("failed", str(e), now, doc_id)
+            )
+            await db.commit()
+        raise
+
+# ── Request/Response models ───────────────────────────────────────────────────
 class IngestRequest(BaseModel):
     url: str
     collection: str
@@ -277,37 +354,26 @@ class CollectionCreateRequest(BaseModel):
 
 @app.post("/ingest/url")
 async def ingest_single(request: IngestRequest, background_tasks: BackgroundTasks):
-    """Submit a single URL for ingestion."""
     doc_id = hashlib.sha256(request.url.encode()).hexdigest()[:16]
     now = datetime.utcnow().isoformat()
 
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("""
             INSERT OR REPLACE INTO documents
-            (id, url, collection, vendor, status, created_at, updated_at)
-            VALUES (?, ?, ?, ?, 'pending', ?, ?)
+            (id, url, collection, vendor, source_type, status, created_at, updated_at)
+            VALUES (?, ?, ?, ?, 'url', 'pending', ?, ?)
         """, (doc_id, request.url, request.collection, request.vendor, now, now))
         await db.commit()
 
     background_tasks.add_task(
-        ingest_url,
-        doc_id,
-        request.url,
-        request.collection,
-        request.vendor,
-        request.access_roles,
-        request.classification
+        ingest_url_task, doc_id, request.url, request.collection,
+        request.vendor, request.access_roles, request.classification
     )
 
-    return {
-        "doc_id": doc_id,
-        "status": "pending",
-        "message": f"Ingestion started for {request.url}"
-    }
+    return {"doc_id": doc_id, "status": "pending", "message": f"Ingestion started for {request.url}"}
 
 @app.post("/ingest/batch")
 async def ingest_batch(request: BatchIngestRequest, background_tasks: BackgroundTasks):
-    """Submit multiple URLs for ingestion."""
     results = []
     for doc in request.documents:
         doc_id = hashlib.sha256(doc.url.encode()).hexdigest()[:16]
@@ -316,32 +382,63 @@ async def ingest_batch(request: BatchIngestRequest, background_tasks: Background
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute("""
                 INSERT OR REPLACE INTO documents
-                (id, url, collection, vendor, status, created_at, updated_at)
-                VALUES (?, ?, ?, ?, 'pending', ?, ?)
+                (id, url, collection, vendor, source_type, status, created_at, updated_at)
+                VALUES (?, ?, ?, ?, 'url', 'pending', ?, ?)
             """, (doc_id, doc.url, doc.collection, doc.vendor, now, now))
             await db.commit()
 
         background_tasks.add_task(
-            ingest_url,
-            doc_id,
-            doc.url,
-            doc.collection,
-            doc.vendor,
-            doc.access_roles,
-            doc.classification
+            ingest_url_task, doc_id, doc.url, doc.collection,
+            doc.vendor, doc.access_roles, doc.classification
         )
 
-        results.append({
-            "doc_id": doc_id,
-            "url": doc.url,
-            "status": "pending"
-        })
+        results.append({"doc_id": doc_id, "url": doc.url, "status": "pending"})
 
     return {"submitted": len(results), "documents": results}
 
+@app.post("/ingest/document")
+async def ingest_document(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    collection: str = Form(...),
+    vendor: str = Form(...),
+    access_roles: str = Form(default="all"),
+    classification: str = Form(default="public"),
+):
+    filename = file.filename or "upload"
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    if ext not in SUPPORTED_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file type: .{ext}. Supported: {', '.join(SUPPORTED_EXTENSIONS)}"
+        )
+
+    content = await file.read()
+    doc_id = hashlib.sha256(content).hexdigest()[:16]
+    now = datetime.utcnow().isoformat()
+    roles = [r.strip() for r in access_roles.split(",")]
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("""
+            INSERT OR REPLACE INTO documents
+            (id, url, collection, vendor, source_type, status, created_at, updated_at)
+            VALUES (?, ?, ?, ?, 'document', 'pending', ?, ?)
+        """, (doc_id, filename, collection, vendor, now, now))
+        await db.commit()
+
+    background_tasks.add_task(
+        ingest_document_task, doc_id, filename, content,
+        collection, vendor, roles, classification
+    )
+
+    return {"doc_id": doc_id, "status": "pending", "message": f"Ingestion started for {filename}"}
+
 @app.get("/documents")
-async def list_documents(collection: Optional[str] = None, status: Optional[str] = None):
-    """List all ingested documents with optional filters."""
+async def list_documents(
+    collection: Optional[str] = None,
+    status: Optional[str] = None,
+    source_type: Optional[str] = None,
+):
     query = "SELECT * FROM documents WHERE 1=1"
     params = []
 
@@ -351,6 +448,9 @@ async def list_documents(collection: Optional[str] = None, status: Optional[str]
     if status:
         query += " AND status=?"
         params.append(status)
+    if source_type:
+        query += " AND source_type=?"
+        params.append(source_type)
 
     query += " ORDER BY updated_at DESC"
 
@@ -362,7 +462,6 @@ async def list_documents(collection: Optional[str] = None, status: Optional[str]
 
 @app.get("/documents/{doc_id}")
 async def get_document(doc_id: str):
-    """Get status of a specific document."""
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         async with db.execute(
@@ -375,7 +474,6 @@ async def get_document(doc_id: str):
 
 @app.delete("/documents/{doc_id}")
 async def delete_document(doc_id: str):
-    """Remove a document from Qdrant and tracking DB."""
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
         async with db.execute(
@@ -386,19 +484,14 @@ async def delete_document(doc_id: str):
                 raise HTTPException(status_code=404, detail="Document not found")
             doc = dict(row)
 
-    # Delete from Qdrant
     client = get_qdrant()
     client.delete(
         collection_name=doc["collection"],
         points_selector=Filter(
-            must=[FieldCondition(
-                key="doc_id",
-                match=MatchValue(value=doc_id)
-            )]
+            must=[FieldCondition(key="doc_id", match=MatchValue(value=doc_id))]
         )
     )
 
-    # Delete from tracking DB
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute("DELETE FROM documents WHERE id=?", (doc_id,))
         await db.commit()
@@ -407,18 +500,15 @@ async def delete_document(doc_id: str):
 
 @app.get("/collections")
 async def list_collections():
-    """List all Qdrant collections."""
     client = get_qdrant()
-    collections = client.get_collections().collections
     return {
         "collections": [
-            {"name": c.name} for c in collections
+            {"name": c.name} for c in client.get_collections().collections
         ]
     }
 
 @app.post("/collections")
 async def create_collection(request: CollectionCreateRequest):
-    """Create a new Qdrant collection."""
     await ensure_collection(request.name)
     return {"message": f"Collection '{request.name}' ready"}
 
@@ -427,5 +517,5 @@ async def health():
     return {
         "status": "healthy",
         "qdrant_url": QDRANT_URL,
-        "embedding_url": EMBEDDING_URL
+        "embedding_url": EMBEDDING_URL,
     }

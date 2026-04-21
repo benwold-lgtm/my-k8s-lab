@@ -8,4 +8,3 @@ qdrant-client==1.9.1
 python-dotenv==1.0.0
 aiosqlite==0.20.0
 tenacity==8.3.0
-hashlib2==1.0.0

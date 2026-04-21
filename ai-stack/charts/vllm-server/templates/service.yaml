@@ -4,11 +4,11 @@ metadata:
   name: vllm-server
   namespace: ai-stack
 spec:
-  type: NodePort
+  type: {{ .Values.service.type }}
   selector:
     app: vllm
   ports:
     - protocol: TCP
-      port: 8000
-      targetPort: 8000
-      nodePort: 30000
+      port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.port }}
+      nodePort: {{ .Values.service.nodePort }}

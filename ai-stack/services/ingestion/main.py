@@ -1,5 +1,6 @@
 import os
 import re
+import shutil
 import hashlib
 import asyncio
 import aiosqlite
@@ -406,7 +407,7 @@ async def watch_folder():
                     if row:
                         status = row[0]
                         if status == "completed" and os.path.exists(filepath):
-                            os.rename(filepath, os.path.join(processed_dir, filename))
+                            shutil.move(filepath, os.path.join(processed_dir, filename))
                         if status in ("completed", "processing", "unchanged"):
                             continue
                         # Re-queue failed or stuck pending documents

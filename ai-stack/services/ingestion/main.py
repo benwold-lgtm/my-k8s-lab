@@ -352,11 +352,12 @@ async def ingest_and_move(
     """Ingest a watch-folder file and move it to processed/ on success.
     Failed files stay in place so the next poll retries them."""
     try:
-        await ingest_document_task(doc_id, filename, content, vendor, [vendor], "public")
+        await ingest_document_task(doc_id, filename, content, vendor, vendor, [vendor], "public")
         if os.path.exists(src_path):
             os.rename(src_path, os.path.join(processed_dir, filename))
-    except Exception:
-        pass
+    except Exception as e:
+        import logging
+        logging.getLogger("watch_folder").error("ingest_and_move failed for %s/%s: %s", vendor, filename, e)
 
 
 async def watch_folder():

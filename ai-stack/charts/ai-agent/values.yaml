@@ -4,6 +4,7 @@ image:
   pullPolicy: Always
 
 replicaCount: 1
+revisionHistoryLimit: 3
 
 service:
   type: NodePort      # internal only, Open-WebUI talks to it inside the cluster

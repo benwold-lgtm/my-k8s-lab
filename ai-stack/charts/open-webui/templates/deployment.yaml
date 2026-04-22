@@ -5,6 +5,7 @@ metadata:
   namespace: open-webui
 spec:
   replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
   selector:
     matchLabels:
       app: open-webui

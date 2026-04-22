@@ -4,6 +4,7 @@ metadata:
   name: vllm-server
 spec:
   replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
   selector:
     matchLabels:
       app: vllm

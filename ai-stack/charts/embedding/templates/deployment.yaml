@@ -5,6 +5,7 @@ metadata:
   namespace: embedding
 spec:
   replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
   selector:
     matchLabels:
       app: embedding

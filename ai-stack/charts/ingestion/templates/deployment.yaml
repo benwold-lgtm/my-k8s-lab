@@ -5,6 +5,7 @@ metadata:
   namespace: ingestion
 spec:
   replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
   selector:
     matchLabels:
       app: ingestion

@@ -5,6 +5,7 @@ metadata:
   namespace: qdrant
 spec:
   replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
   selector:
     matchLabels:
       app: qdrant

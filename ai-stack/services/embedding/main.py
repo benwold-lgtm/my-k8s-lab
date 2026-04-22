@@ -1,5 +1,6 @@
 import os
 import asyncio
+import torch
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Optional
@@ -11,9 +12,10 @@ app = FastAPI(title="Embedding Service")
 MODEL_NAME = os.getenv("EMBEDDING_MODEL", "nomic-ai/nomic-embed-text-v1.5")
 
 # ── Load model at startup ─────────────────────────────────────────────────────
-print(f"Loading embedding model: {MODEL_NAME}")
-model = SentenceTransformer(MODEL_NAME, trust_remote_code=True)
-print("Embedding model loaded successfully")
+device = "cuda" if torch.cuda.is_available() else "cpu"
+print(f"Loading embedding model: {MODEL_NAME} on {device}")
+model = SentenceTransformer(MODEL_NAME, trust_remote_code=True, device=device)
+print(f"Embedding model loaded successfully on {device}")
 
 # ── Request/Response Models ───────────────────────────────────────────────────
 class EmbeddingRequest(BaseModel):

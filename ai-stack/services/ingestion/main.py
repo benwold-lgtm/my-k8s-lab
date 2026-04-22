@@ -105,11 +105,12 @@ async def fetch_url(url: str) -> tuple[str, str]:
         config = CrawlerRunConfig(
             cache_mode=CacheMode.BYPASS,
             wait_until="domcontentloaded",
-            page_timeout=30000,
+            page_timeout=45000,
             remove_overlay_elements=True,
             excluded_tags=["nav", "footer", "header", "aside"],
             word_count_threshold=10,
             magic=True,
+            css_selector="article, main, .blog-content, .article-body, #mh-main",
         )
         async with AsyncWebCrawler(headless=True) as crawler:
             result = await crawler.arun(url=url, config=config)
@@ -280,10 +281,11 @@ async def ingest_url_task(
             await db.commit()
 
     except Exception as e:
+        error_msg = str(e) or repr(e) or type(e).__name__
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute(
                 "UPDATE documents SET status=?, error=?, updated_at=? WHERE id=?",
-                ("failed", str(e), now, doc_id)
+                ("failed", error_msg, now, doc_id)
             )
             await db.commit()
         raise

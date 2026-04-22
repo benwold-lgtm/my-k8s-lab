@@ -19,8 +19,8 @@ embedding:
   url: "http://embedding.embedding.svc.cluster.local:8001"
 
 config:
-  chunkSize: "512"
-  chunkOverlap: "50"
+  chunkSize: "256"
+  chunkOverlap: "25"
   embeddingDim: "768"
 
 storage:

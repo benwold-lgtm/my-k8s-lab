@@ -194,7 +194,7 @@ async def run_pipeline(
         )
     )
 
-    BATCH_SIZE = 32
+    BATCH_SIZE = 8
     for i in range(0, len(chunks), BATCH_SIZE):
         batch_chunks = chunks[i:i + BATCH_SIZE]
         batch_embeddings = await embed_texts(batch_chunks)

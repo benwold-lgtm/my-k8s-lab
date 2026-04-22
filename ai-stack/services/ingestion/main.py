@@ -20,6 +20,8 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 
 app = FastAPI(title="Ingestion Service")
 
+crawl_semaphore = asyncio.Semaphore(1)
+
 # ── Configuration ─────────────────────────────────────────────────────────────
 QDRANT_URL          = os.getenv("QDRANT_URL",          "http://qdrant.qdrant.svc.cluster.local:6333")
 QDRANT_API_KEY      = os.getenv("QDRANT_API_KEY")
@@ -99,17 +101,18 @@ def chunk_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVE
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
 async def fetch_url(url: str) -> tuple[str, str]:
     """Fetch a URL using a headless browser and return (title, clean_text)."""
-    config = CrawlerRunConfig(
-        cache_mode=CacheMode.BYPASS,
-        wait_until="networkidle",
-        page_timeout=30000,
-        remove_overlay_elements=True,
-        excluded_tags=["nav", "footer", "header", "aside"],
-        word_count_threshold=10,
-        magic=True,
-    )
-    async with AsyncWebCrawler(headless=True) as crawler:
-        result = await crawler.arun(url=url, config=config)
+    async with crawl_semaphore:
+        config = CrawlerRunConfig(
+            cache_mode=CacheMode.BYPASS,
+            wait_until="networkidle",
+            page_timeout=30000,
+            remove_overlay_elements=True,
+            excluded_tags=["nav", "footer", "header", "aside"],
+            word_count_threshold=10,
+            magic=True,
+        )
+        async with AsyncWebCrawler(headless=True) as crawler:
+            result = await crawler.arun(url=url, config=config)
 
     if not result.success:
         raise ValueError(f"Failed to crawl {url}: {result.error_message}")

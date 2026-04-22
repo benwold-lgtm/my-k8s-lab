@@ -194,37 +194,35 @@ async def run_pipeline(
         )
     )
 
-    all_embeddings = []
-    for i in range(0, len(chunks), 32):
-        embeddings = await embed_texts(chunks[i:i + 32])
-        all_embeddings.extend(embeddings)
+    BATCH_SIZE = 32
+    for i in range(0, len(chunks), BATCH_SIZE):
+        batch_chunks = chunks[i:i + BATCH_SIZE]
+        batch_embeddings = await embed_texts(batch_chunks)
+
+        points = []
+        for j, (chunk, embedding) in enumerate(zip(batch_chunks, batch_embeddings)):
+            point_id = abs(hash(f"{doc_id}-{i+j}")) % (2**63)
+            points.append(PointStruct(
+                id=point_id,
+                vector=embedding,
+                payload={
+                    "doc_id":         doc_id,
+                    "url":            source,
+                    "title":          title,
+                    "collection":     collection,
+                    "vendor":         vendor,
+                    "chunk_index":    i+j,
+                    "total_chunks":   len(chunks),
+                    "content":        chunk,
+                    "access_roles":   access_roles,
+                    "classification": classification,
+                    "source_type":    source_type,
+                    "ingested_at":    now,
+                    "content_hash":   content_hash,
+                }
+            ))
+        client.upsert(collection_name=collection, points=points)
         await asyncio.sleep(0.1)
-
-    points = []
-    for i, (chunk, embedding) in enumerate(zip(chunks, all_embeddings)):
-        point_id = abs(hash(f"{doc_id}-{i}")) % (2**63)
-        points.append(PointStruct(
-            id=point_id,
-            vector=embedding,
-            payload={
-                "doc_id":         doc_id,
-                "url":            source,
-                "title":          title,
-                "collection":     collection,
-                "vendor":         vendor,
-                "chunk_index":    i,
-                "total_chunks":   len(chunks),
-                "content":        chunk,
-                "access_roles":   access_roles,
-                "classification": classification,
-                "source_type":    source_type,
-                "ingested_at":    now,
-                "content_hash":   content_hash,
-            }
-        ))
-
-    for i in range(0, len(points), 100):
-        client.upsert(collection_name=collection, points=points[i:i + 100])
 
     return len(chunks)
 

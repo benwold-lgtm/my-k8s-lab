@@ -104,7 +104,7 @@ async def fetch_url(url: str) -> tuple[str, str]:
     async with crawl_semaphore:
         config = CrawlerRunConfig(
             cache_mode=CacheMode.BYPASS,
-            wait_until="networkidle",
+            wait_until="domcontentloaded",
             page_timeout=30000,
             remove_overlay_elements=True,
             excluded_tags=["nav", "footer", "header", "aside"],

@@ -154,7 +154,7 @@ def save_file(doc_id: str, filename: str, content: bytes) -> str:
 
 # ── Embedding caller ──────────────────────────────────────────────────────────
 async def embed_texts(texts: list[str]) -> list[list[float]]:
-    async with httpx.AsyncClient(timeout=60.0) as client:
+    async with httpx.AsyncClient(timeout=120.0) as client:
         response = await client.post(
             f"{EMBEDDING_URL}/v1/embeddings",
             json={"input": texts}

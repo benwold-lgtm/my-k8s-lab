@@ -16,10 +16,10 @@ model:
 
 resources:
   requests:
-    memory: "1Gi"
+    memory: "2Gi"
     cpu: "500m"
   limits:
-    memory: "3Gi"    # nomic-embed-text needs ~2GB RAM on CPU
+    memory: "6Gi"
     cpu: "2000m"
 nodeSelector:
   kubernetes.io/hostname: bengpu1

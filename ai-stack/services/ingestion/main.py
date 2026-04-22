@@ -21,6 +21,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 app = FastAPI(title="Ingestion Service")
 
 crawl_semaphore = asyncio.Semaphore(1)
+embed_semaphore = asyncio.Semaphore(2)
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 QDRANT_URL          = os.getenv("QDRANT_URL",          "http://qdrant.qdrant.svc.cluster.local:6333")
@@ -364,15 +365,14 @@ async def ingest_and_move(
     src_path: str,
     processed_dir: str,
 ):
-    """Ingest a watch-folder file and move it to processed/ on success.
-    Failed files stay in place so the next poll retries them."""
-    try:
-        await ingest_document_task(doc_id, filename, content, vendor, vendor, [vendor], "public")
-        if os.path.exists(src_path):
-            os.rename(src_path, os.path.join(processed_dir, filename))
-    except Exception as e:
-        import logging
-        logging.getLogger("watch_folder").error("ingest_and_move failed for %s/%s: %s", vendor, filename, e)
+    async with embed_semaphore:
+        try:
+            await ingest_document_task(doc_id, filename, content, vendor, vendor, [vendor], "public")
+            if os.path.exists(src_path):
+                os.rename(src_path, os.path.join(processed_dir, filename))
+        except Exception as e:
+            import logging
+            logging.getLogger("watch_folder").error("ingest_and_move failed for %s/%s: %s", vendor, filename, e)
 
 
 async def watch_folder():

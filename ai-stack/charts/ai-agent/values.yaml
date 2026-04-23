@@ -18,6 +18,13 @@ vllm:
 secret:
   name: ai-agent-secrets   # must match the kubectl secret you created earlier
 
+qdrant:
+  url: "http://qdrant.qdrant.svc.cluster.local:6333"
+  secretName: ai-agent-secrets
+
+embedding:
+  url: "http://embedding.embedding.svc.cluster.local:8001"
+
 resources:
   requests:
     memory: "256Mi"

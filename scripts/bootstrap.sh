@@ -103,9 +103,11 @@ echo
 if kubectl get secret ai-agent-secrets -n ai-agent &>/dev/null; then
   warn "Secret 'ai-agent-secrets' already exists — skipping"
 else
-  prompt_secret "BRAVE_API_KEY (for ai-agent)" BRAVE_API_KEY
+  prompt_secret "BRAVE_API_KEY (for ai-agent web search)" BRAVE_API_KEY
+  prompt_secret "QDRANT_API_KEY (for ai-agent RAG access)" QDRANT_API_KEY_AGENT
   kubectl create secret generic ai-agent-secrets -n ai-agent \
-    --from-literal=BRAVE_API_KEY="${BRAVE_API_KEY}"
+    --from-literal=BRAVE_API_KEY="${BRAVE_API_KEY}" \
+    --from-literal=QDRANT_API_KEY="${QDRANT_API_KEY_AGENT}"
   ok "Created secret 'ai-agent-secrets' in namespace ai-agent"
 fi
 

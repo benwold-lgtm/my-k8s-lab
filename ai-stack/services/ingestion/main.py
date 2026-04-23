@@ -103,7 +103,7 @@ def chunk_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVE
 async def fetch_url(url: str) -> tuple[str, str]:
     """Fetch a URL using a headless browser and return (title, clean_text)."""
     async with crawl_semaphore:
-        config = CrawlerRunConfig(
+        base_config = dict(
             cache_mode=CacheMode.BYPASS,
             wait_until="domcontentloaded",
             page_timeout=45000,
@@ -111,17 +111,27 @@ async def fetch_url(url: str) -> tuple[str, str]:
             excluded_tags=["nav", "footer", "header", "aside"],
             word_count_threshold=10,
             magic=True,
-            css_selector="article, main, .blog-content, .article-body, #mh-main",
         )
         async with AsyncWebCrawler(headless=True) as crawler:
-            result = await crawler.arun(url=url, config=config)
+            result = await crawler.arun(
+                url=url,
+                config=CrawlerRunConfig(
+                    **base_config,
+                    css_selector="article, main, .blog-content, .article-body, #mh-main",
+                )
+            )
+
+            # Retry without CSS selector if the selector matched nothing useful
+            if result.success and (not result.markdown or len(result.markdown.strip()) < 100):
+                result = await crawler.arun(
+                    url=url, config=CrawlerRunConfig(**base_config)
+                )
 
     if not result.success:
         raise ValueError(f"Failed to crawl {url}: {result.error_message}")
 
     title = (result.metadata or {}).get("title", "").strip()
-    text = result.markdown or ""
-    text = re.sub(r'\s+', ' ', text).strip()
+    text = re.sub(r'\s+', ' ', result.markdown or "").strip()
     return title, text
 
 # ── Document extractor ────────────────────────────────────────────────────────

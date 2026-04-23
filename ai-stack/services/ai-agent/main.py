@@ -187,8 +187,12 @@ async def run_agent(messages: list, temperature: float = 0.7, max_tokens: int = 
    Format: [TOOL_CALLS][{"name": "brave_search", "arguments": {"query": "your search query"}}]
 
 Always try rag_search first. Use brave_search only when the knowledge base lacks the answer.
-After receiving results, provide a clear and helpful answer based on them.
-If you don't need to search, answer directly."""
+
+When formulating your answer after receiving tool results:
+- Answer ONLY using the information returned by the tools.
+- If the retrieved context does not contain enough information to answer, say so explicitly.
+- Do NOT use your training knowledge to supplement the retrieved context.
+- Do NOT fabricate quotes or specific details not present in the retrieved context."""
 
     # Prepend system message if not already present
     if not messages or messages[0].get("role") != "system":
@@ -267,6 +271,13 @@ async def chat_completions(request: ChatCompletionRequest):
             temperature=request.temperature,
             max_tokens=request.max_tokens
         )
+
+        if sources:
+            sources_md = "\n\n---\n**Sources:**\n" + "\n".join(
+                f"- [{s['vendor']}] {s['title']} — {s['url']}"
+                for s in sources
+            )
+            final_response += sources_md
 
         if request.stream:
             return StreamingResponse(

@@ -9,7 +9,7 @@ GitOps homelab running a self-hosted AI stack on Kubernetes, managed via ArgoCD 
 | Host | Type | CPU | RAM | Storage | NIC |
 |---|---|---|---|---|---|
 | `vmenuc` | Intel NUC (physical) | Intel i3 | 48 GB | 480 GB SSD | 1 GbE |
-| `bengpu1` | Tower (physical) | AMD Ryzen 5900X | 128 GB | 2 TB NVMe M.2 | 1 GbE |
+| `bengpu1` | Tower (physical) | AMD Ryzen 9 5900X (16-core, 3.3 GHz) | 128 GB | 2 TB NVMe M.2 | 1 GbE |
 | Workstation | Laptop (Windows 11) | AMD Ryzen AI 7 350 | — | — | WiFi |
 
 `vmenuc` runs KVM and hosts the three Kubernetes VMs. `bengpu1` has an RTX 3090 and runs all AI workloads. Both physical nodes connect to a 1 GbE Unifi switch.

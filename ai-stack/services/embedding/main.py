@@ -8,6 +8,10 @@ from sentence_transformers import SentenceTransformer
 
 app = FastAPI(title="Embedding Service")
 
+# Serialize encode() calls — CPU-bound work gains nothing from concurrency and
+# causes CPU throttling that kills liveness probes under sustained load.
+encode_semaphore = asyncio.Semaphore(1)
+
 # ── Configuration ─────────────────────────────────────────────────────────────
 MODEL_NAME = os.getenv("EMBEDDING_MODEL", "nomic-ai/nomic-embed-text-v1.5")
 
@@ -42,12 +46,13 @@ async def create_embeddings(request: EmbeddingRequest):
         # Add nomic prefix required by nomic-embed-text
         prefixed = [f"search_document: {t}" for t in texts]
 
-        # Generate embeddings in thread pool (CPU bound)
+        # Generate embeddings in thread pool (CPU/GPU bound)
         loop = asyncio.get_event_loop()
-        embeddings = await loop.run_in_executor(
-            None,
-            lambda: model.encode(prefixed, normalize_embeddings=True).tolist()
-        )
+        async with encode_semaphore:
+            embeddings = await loop.run_in_executor(
+                None,
+                lambda: model.encode(prefixed, normalize_embeddings=True).tolist()
+            )
 
         return EmbeddingResponse(
             model=MODEL_NAME,
@@ -72,10 +77,11 @@ async def create_query_embedding(request: EmbeddingRequest):
         prefixed = [f"search_query: {t}" for t in texts]
 
         loop = asyncio.get_event_loop()
-        embeddings = await loop.run_in_executor(
-            None,
-            lambda: model.encode(prefixed, normalize_embeddings=True).tolist()
-        )
+        async with encode_semaphore:
+            embeddings = await loop.run_in_executor(
+                None,
+                lambda: model.encode(prefixed, normalize_embeddings=True).tolist()
+            )
 
         return EmbeddingResponse(
             model=MODEL_NAME,

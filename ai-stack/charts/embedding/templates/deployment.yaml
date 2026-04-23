@@ -28,14 +28,17 @@ spec:
             httpGet:
               path: /health
               port: 8001
-            initialDelaySeconds: 60    # model loading takes time
+            initialDelaySeconds: 60
             periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 5
           readinessProbe:
             httpGet:
               path: /health
               port: 8001
             initialDelaySeconds: 45
             periodSeconds: 10
+            timeoutSeconds: 10
           resources:
             requests:
               memory: {{ .Values.resources.requests.memory }}

@@ -17,9 +17,9 @@ model:
 resources:
   requests:
     memory: "4Gi"
-    cpu: "500m"
+    cpu: "2000m"
   limits:
     memory: "24Gi"
-    cpu: "2000m"
+    cpu: "8000m"
 nodeSelector:
   kubernetes.io/hostname: bengpu1

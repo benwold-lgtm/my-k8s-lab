@@ -1,5 +1,5 @@
 image:
-  repository: comfyui/comfyui
+  repository: ghcr.io/ai-dock/comfyui
   tag: latest
   pullPolicy: Always
 

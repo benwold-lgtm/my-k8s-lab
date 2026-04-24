@@ -160,7 +160,14 @@ def extract_tool_calls(content: str) -> list:
     return tool_calls
 
 # ── Core agent loop ───────────────────────────────────────────────────────────
-async def run_agent(messages: list, temperature: float = 0.7, max_tokens: int = 1024) -> tuple[str, list[dict]]:
+async def run_agent(
+    messages: list,
+    temperature: float = 0.2,
+    max_tokens: int = 1024,
+    top_p: float = 0.9,
+    top_k: int = 40,
+    repetition_penalty: float = 1.1,
+) -> tuple[str, list[dict]]:
     """
     Manual agent loop:
     1. Send messages to LLM
@@ -173,7 +180,12 @@ async def run_agent(messages: list, temperature: float = 0.7, max_tokens: int = 
         api_key="not-needed",
         model=VLLM_MODEL,
         temperature=temperature,
-        max_tokens=max_tokens
+        max_tokens=max_tokens,
+        top_p=top_p,
+        model_kwargs={
+            "top_k": top_k,
+            "repetition_penalty": repetition_penalty,
+        },
     )
 
     system_prompt = """You are a helpful assistant with access to two tools:
@@ -256,9 +268,12 @@ class Message(BaseModel):
 class ChatCompletionRequest(BaseModel):
     model: str
     messages: list[Message]
-    temperature: Optional[float] = 0.7
+    temperature: Optional[float] = 0.2
     stream: Optional[bool] = False
     max_tokens: Optional[int] = 1024
+    top_p: Optional[float] = 0.9
+    top_k: Optional[int] = 40
+    repetition_penalty: Optional[float] = 1.1
 
 # ── OpenAI-Compatible Endpoint ────────────────────────────────────────────────
 @app.post("/v1/chat/completions")
@@ -269,7 +284,10 @@ async def chat_completions(request: ChatCompletionRequest):
         final_response, sources = await run_agent(
             messages,
             temperature=request.temperature,
-            max_tokens=request.max_tokens
+            max_tokens=request.max_tokens,
+            top_p=request.top_p,
+            top_k=request.top_k,
+            repetition_penalty=request.repetition_penalty,
         )
 
         if sources:

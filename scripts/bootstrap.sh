@@ -157,9 +157,9 @@ else
 fi
 
 # ── App of Apps ────────────────────────────────────────────────────────────────
-info "Applying ArgoCD master app (triggers full AI stack sync)..."
-kubectl apply -f "${REPO_ROOT}/argocd-apps/master-app.yaml"
-ok "master-app applied — ArgoCD will now sync all six services"
+info "Applying RAG master app (triggers full AI stack sync)..."
+kubectl apply -f "${REPO_ROOT}/argocd-apps/rag-master-app.yaml"
+ok "rag-master-app applied — ArgoCD will now sync all six services"
 
 # ── Done ───────────────────────────────────────────────────────────────────────
 echo

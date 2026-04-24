@@ -122,7 +122,7 @@ charts/<service>/
     └── pvc.yaml             # (where applicable)
 ```
 
-ArgoCD watches `argocd-apps/` via the master app (`master-app.yaml`), which in turn manages all individual Application manifests. Each app syncs its chart from `ai-stack/charts/<service>/`.
+ArgoCD watches `argocd-apps/` via the RAG master app (`rag-master-app.yaml`), which in turn manages all individual Application manifests. Each app syncs its chart from `ai-stack/charts/<service>/`.
 
 ---
 

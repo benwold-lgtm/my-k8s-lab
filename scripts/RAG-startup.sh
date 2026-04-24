@@ -42,6 +42,12 @@ for app in "${RAG_APPS[@]}"; do
   fi
 done
 
+# Re-enable master app auto-sync last so it reconciles child apps from git
+info "Re-enabling ArgoCD auto-sync on master app..."
+kubectl patch application rag-master-app -n argocd --type=merge \
+  -p '{"spec":{"syncPolicy":{"automated":{"prune":true,"selfHeal":true}}}}'
+ok "  Auto-sync enabled: rag-master-app"
+
 echo
 echo "─────────────────────────────────────────────────────────────────"
 ok "RAG lab starting up. Note: vLLM takes a few minutes to load the model."

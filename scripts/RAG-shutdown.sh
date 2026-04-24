@@ -19,7 +19,13 @@ echo "║        my-k8s-lab  —  RAG Shutdown        ║"
 echo "╚═══════════════════════════════════════════╝"
 echo
 
-# Disable ArgoCD auto-sync first so it doesn't scale pods back up
+# Disable master app auto-sync first — otherwise it overwrites child app patches
+info "Disabling ArgoCD auto-sync on master app..."
+kubectl patch application rag-master-app -n argocd --type=merge \
+  -p '{"spec":{"syncPolicy":null}}'
+ok "  Auto-sync disabled: rag-master-app"
+
+# Disable ArgoCD auto-sync on child apps
 info "Disabling ArgoCD auto-sync on RAG apps..."
 for app in "${RAG_APPS[@]}"; do
   if kubectl get application "$app" -n argocd &>/dev/null; then

@@ -15,6 +15,14 @@ spec:
         app: comfyui
     spec:
       nodeSelector: {{ toYaml .Values.nodeSelector | nindent 8 }}
+      tolerations:
+        - key: "nvidia.com/gpu"
+          operator: "Exists"
+          effect: "NoSchedule"
+        - key: "sku"
+          operator: "Equal"
+          value: "gpu"
+          effect: "NoSchedule"
       containers:
       - name: comfyui
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -22,19 +30,15 @@ spec:
         ports:
         - containerPort: {{ .Values.service.port }}
           name: http
-        resources:
-          requests:
-            memory: {{ .Values.resources.requests.memory | quote }}
-            cpu: {{ .Values.resources.requests.cpu | quote }}
-          limits:
-            memory: {{ .Values.resources.limits.memory | quote }}
-            cpu: {{ .Values.resources.limits.cpu | quote }}
+        resources: {{ toYaml .Values.resources | nindent 10 }}
         env:
         - name: COMFYUI_LISTEN
           value: {{ .Values.environment.COMFYUI_LISTEN | quote }}
         volumeMounts:
         - name: models
           mountPath: {{ .Values.persistence.mountPath }}
+        - name: shm
+          mountPath: /dev/shm
         livenessProbe:
           httpGet:
             path: /
@@ -54,3 +58,7 @@ spec:
       - name: models
         persistentVolumeClaim:
           claimName: {{ .Values.persistence.pvcName }}
+      - name: shm
+        emptyDir:
+          medium: Memory
+          sizeLimit: 8Gi

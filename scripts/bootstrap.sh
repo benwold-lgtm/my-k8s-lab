@@ -37,6 +37,22 @@ done
 kubectl cluster-info &>/dev/null || die "Cannot reach cluster — check kubeconfig"
 ok "Cluster reachable"
 
+# NFS server reachability (port 2049)
+info "Checking NFS server reachability (${NFS_SERVER})..."
+if nc -z -w5 "${NFS_SERVER}" 2049 2>/dev/null; then
+  ok "NFS server reachable"
+else
+  warn "NFS server ${NFS_SERVER}:2049 unreachable — vLLM and ingestion PVCs will fail to bind"
+fi
+
+# NVIDIA device plugin (required for vLLM GPU scheduling)
+if kubectl get daemonset nvidia-device-plugin-daemonset -n kube-system &>/dev/null; then
+  ok "NVIDIA device plugin found"
+else
+  warn "NVIDIA device plugin not found in kube-system — vLLM will fail to schedule"
+  warn "  Install: https://github.com/NVIDIA/k8s-device-plugin"
+fi
+
 # ── ArgoCD ─────────────────────────────────────────────────────────────────────
 if kubectl get deployment argocd-server -n argocd &>/dev/null; then
   warn "ArgoCD already installed — skipping"
@@ -80,8 +96,8 @@ fi
 # ── Namespaces ─────────────────────────────────────────────────────────────────
 # ArgoCD creates namespaces on sync (CreateNamespace=true), but secrets must
 # exist before the first sync or pods will fail to start.
-info "Creating namespaces for pre-sync secrets..."
-for ns in ai-agent qdrant ai-stack; do
+info "Creating namespaces..."
+for ns in ai-agent qdrant ai-stack ingestion embedding open-webui; do
   kubectl create namespace "$ns" --dry-run=client -o yaml | kubectl apply -f -
 done
 ok "Namespaces ready"
@@ -96,6 +112,17 @@ prompt_secret() {
   printf -v "$varname" '%s' "$value"
 }
 
+echo
+echo "  ┌─────────────────────────────────────────────────────────────┐"
+echo "  │  SECRET STORAGE REMINDER                                    │"
+echo "  │  Store every value entered below in Bitwarden (or your      │"
+echo "  │  password manager) under an entry named:                    │"
+echo "  │    'my-k8s-lab bootstrap secrets'                           │"
+echo "  │                                                             │"
+echo "  │  Your GHCR_TOKEN (GitHub Actions secret) should be a        │"
+echo "  │  fine-grained PAT scoped to MY-K8S-LAB / write:packages     │"
+echo "  │  only, with a 90-day expiry. Store it in Bitwarden too.     │"
+echo "  └─────────────────────────────────────────────────────────────┘"
 echo
 info "Creating Kubernetes secrets — input is hidden, press Enter after each value."
 echo

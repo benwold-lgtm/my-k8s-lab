@@ -32,8 +32,10 @@ spec:
           name: http
         resources: {{ toYaml .Values.resources | nindent 10 }}
         env:
-        - name: COMFYUI_LISTEN
-          value: {{ .Values.environment.COMFYUI_LISTEN | quote }}
+        - name: COMFYUI_FLAGS
+          value: {{ .Values.environment.COMFYUI_FLAGS | quote }}
+        - name: CF_QUICK_TUNNELS
+          value: {{ .Values.environment.CF_QUICK_TUNNELS | quote }}
         volumeMounts:
         - name: models
           mountPath: {{ .Values.persistence.mountPath }}
@@ -43,7 +45,7 @@ spec:
           httpGet:
             path: /
             port: {{ .Values.service.port }}
-          initialDelaySeconds: 120
+          initialDelaySeconds: 300
           periodSeconds: 30
           timeoutSeconds: 10
           failureThreshold: 3
@@ -51,7 +53,7 @@ spec:
           httpGet:
             path: /
             port: {{ .Values.service.port }}
-          initialDelaySeconds: 60
+          initialDelaySeconds: 120
           periodSeconds: 10
           timeoutSeconds: 10
       volumes:

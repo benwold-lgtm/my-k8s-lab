@@ -31,4 +31,5 @@ persistence:
   mountPath: /root/.comfyui/models
 
 environment:
-  COMFYUI_LISTEN: "0.0.0.0"
+  COMFYUI_FLAGS: "--listen 0.0.0.0"
+  CF_QUICK_TUNNELS: "false"

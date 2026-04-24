@@ -59,6 +59,7 @@ All services run on `bengpu1` via `nodeSelector: kubernetes.io/hostname: bengpu1
 | `embedding` | `ghcr.io/benwold-lgtm/embedding:latest` | Embedding service — nomic-embed-text-v1.5 |
 | `ingestion` | `ghcr.io/benwold-lgtm/ingestion:latest` | Document ingestion pipeline |
 | `qdrant` | `qdrant/qdrant:v1.9.0` | Vector database |
+| `comfyui` | `comfyui/comfyui:latest` | Image generation UI — text-to-image and image editing |
 
 ### NodePort Assignments
 
@@ -73,8 +74,9 @@ Do not reuse these ports.
 | `30083` | ingestion | 8002 | HTTP |
 | `30333` | qdrant | 6333 | HTTP (REST) |
 | `30334` | qdrant | 6334 | gRPC |
+| `30084` | comfyui | 8188 | HTTP |
 
-Next available NodePort: `30084` (for new services, continue from here).
+Next available NodePort: `30085` (for new services, continue from here).
 
 ### Internal Service URLs (cluster-DNS)
 
@@ -100,7 +102,8 @@ my-k8s-lab/
 │   │   ├── ingestion/
 │   │   ├── open-webui/
 │   │   ├── qdrant/
-│   │   └── vllm-server/
+│   │   ├── vllm-server/
+│   │   └── comfyui/
 │   └── services/            # Python microservice source (Dockerfile + main.py + requirements.txt)
 │       ├── ai-agent/
 │       ├── embedding/
@@ -122,7 +125,7 @@ charts/<service>/
     └── pvc.yaml             # (where applicable)
 ```
 
-ArgoCD watches `argocd-apps/` via the RAG master app (`rag-master-app.yaml`), which in turn manages all individual Application manifests. Each app syncs its chart from `ai-stack/charts/<service>/`.
+ArgoCD watches `argocd-apps/` via two master apps (`rag-master-app.yaml` and `image-master-app.yaml`), which in turn manage all individual Application manifests. Each app syncs its chart from `ai-stack/charts/<service>/`.
 
 ---
 

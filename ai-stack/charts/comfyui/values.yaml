@@ -1,0 +1,32 @@
+image:
+  repository: comfyui/comfyui
+  tag: latest
+  pullPolicy: Always
+
+replicaCount: 1
+revisionHistoryLimit: 3
+
+service:
+  type: NodePort
+  port: 8188
+  nodePort: 30084
+
+nodeSelector:
+  kubernetes.io/hostname: bengpu1
+
+resources:
+  requests:
+    memory: "4Gi"
+    cpu: "1000m"
+  limits:
+    memory: "8Gi"
+    cpu: "4000m"
+
+persistence:
+  pvcName: comfyui-models-pvc
+  storageClassName: nfs-client
+  size: 50Gi
+  mountPath: /root/.comfyui/models
+
+environment:
+  COMFYUI_LISTEN: "0.0.0.0"

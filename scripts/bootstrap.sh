@@ -97,7 +97,7 @@ fi
 # ArgoCD creates namespaces on sync (CreateNamespace=true), but secrets must
 # exist before the first sync or pods will fail to start.
 info "Creating namespaces..."
-for ns in ai-agent qdrant ai-stack ingestion embedding open-webui; do
+for ns in ai-agent qdrant ai-stack ingestion embedding open-webui comfyui; do
   kubectl create namespace "$ns" --dry-run=client -o yaml | kubectl apply -f -
 done
 ok "Namespaces ready"

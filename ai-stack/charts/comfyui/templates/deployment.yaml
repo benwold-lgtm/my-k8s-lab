@@ -55,8 +55,9 @@ spec:
           timeoutSeconds: 10
       volumes:
       - name: models
-        persistentVolumeClaim:
-          claimName: {{ .Values.persistence.pvcName }}
+        nfs:
+          server: {{ .Values.persistence.nfsServer }}
+          path: {{ .Values.persistence.nfsPath }}
       - name: shm
         emptyDir:
           medium: Memory

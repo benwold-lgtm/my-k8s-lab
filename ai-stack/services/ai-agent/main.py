@@ -165,8 +165,6 @@ async def run_agent(
     temperature: float = 0.2,
     max_tokens: int = 1024,
     top_p: float = 0.9,
-    top_k: int = 40,
-    repetition_penalty: float = 1.1,
 ) -> tuple[str, list[dict]]:
     """
     Manual agent loop:
@@ -182,12 +180,6 @@ async def run_agent(
         temperature=temperature,
         max_tokens=max_tokens,
         top_p=top_p,
-        model_kwargs={
-            "extra_body": {
-                "top_k": top_k,
-                "repetition_penalty": repetition_penalty,
-            }
-        },
     )
 
     system_prompt = """You are a helpful assistant with access to two tools:
@@ -274,8 +266,6 @@ class ChatCompletionRequest(BaseModel):
     stream: Optional[bool] = False
     max_tokens: Optional[int] = 1024
     top_p: Optional[float] = 0.9
-    top_k: Optional[int] = 40
-    repetition_penalty: Optional[float] = 1.1
 
 # ── OpenAI-Compatible Endpoint ────────────────────────────────────────────────
 @app.post("/v1/chat/completions")
@@ -288,8 +278,6 @@ async def chat_completions(request: ChatCompletionRequest):
             temperature=request.temperature,
             max_tokens=request.max_tokens,
             top_p=request.top_p,
-            top_k=request.top_k,
-            repetition_penalty=request.repetition_penalty,
         )
 
         if sources:

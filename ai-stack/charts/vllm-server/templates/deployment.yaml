@@ -13,6 +13,7 @@ spec:
       labels:
         app: vllm
     spec:
+      hostIPC: true
       nodeSelector: {{ toYaml .Values.nodeSelector | nindent 8 }}
       tolerations:
         - key: "nvidia.com/gpu"
@@ -22,16 +23,32 @@ spec:
           operator: "Equal"
           value: "gpu"
           effect: "NoSchedule"
-      containers:
-        - name: vllm-container
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+      initContainers:
+        - name: fetch-patches
+          image: alpine/git:latest
           command: ["/bin/sh", "-c"]
           args:
             - |
               set -e
-              echo "--- LAUNCHING {{ .Values.model.name }} ---"
-              python3 -m vllm.entrypoints.openai.api_server \
+              git clone --depth 1 {{ .Values.patches.genesisRepo }} /tmp/genesis
+              git clone --depth 1 {{ .Values.patches.recipeRepo }} /tmp/recipe
+              cp /tmp/genesis/patch_genesis_unified.py /patches/
+              cp /tmp/recipe/patches/patch_tolist_cudagraph.py /patches/
+          volumeMounts:
+            - name: patches
+              mountPath: /patches
+      containers:
+        - name: vllm-container
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              set -e
+              pip install xxhash -q
+              python3 /patches/patch_genesis_unified.py
+              python3 /patches/patch_tolist_cudagraph.py
+              exec python3 -m vllm.entrypoints.openai.api_server \
                 --model {{ .Values.model.name }} \
                 --download-dir {{ .Values.model.downloadDir }} \
                 --quantization auto_round \
@@ -49,7 +66,9 @@ spec:
                 --enable-prefix-caching \
                 --enable-chunked-prefill \
                 --no-scheduler-reserve-full-isl \
-                --speculative-config '{"method":"mtp","num_speculative_tokens":3}'
+                --speculative-config '{"method":"mtp","num_speculative_tokens":3}' \
+                --host 0.0.0.0 \
+                --port {{ .Values.service.port }}
           env:
             - name: HF_TOKEN
               valueFrom:
@@ -67,6 +86,8 @@ spec:
               mountPath: {{ .Values.model.downloadDir }}
             - name: shm
               mountPath: /dev/shm
+            - name: patches
+              mountPath: /patches
           resources: {{ toYaml .Values.resources | nindent 12 }}
       volumes:
         - name: data-vol
@@ -76,3 +97,5 @@ spec:
           emptyDir:
             medium: Memory
             sizeLimit: {{ .Values.shm.sizeLimit }}
+        - name: patches
+          emptyDir: {}

@@ -3,7 +3,7 @@ revisionHistoryLimit: 3
 
 image:
   repository: vllm/vllm-openai
-  tag: latest
+  tag: nightly
   pullPolicy: Always
 
 model:
@@ -11,10 +11,10 @@ model:
   downloadDir: "/data"
 
 server:
-  maxModelLen: 68000
+  maxModelLen: 20000
   gpuMemoryUtilization: "0.97"
   maxNumSeqs: 1
-  maxNumBatchedTokens: 2048
+  maxNumBatchedTokens: 4128
 
 resources:
   limits:
@@ -42,6 +42,10 @@ persistence:
 
 shm:
   sizeLimit: 16Gi
+
+patches:
+  genesisRepo: "https://github.com/Sandermage/genesis-vllm-patches.git"
+  recipeRepo: "https://github.com/noonghunna/qwen36-27b-single-3090.git"
 
 env:
   extra:

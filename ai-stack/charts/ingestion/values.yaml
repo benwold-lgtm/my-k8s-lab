@@ -36,8 +36,8 @@ resources:
     cpu: "2000m"
 watchDir:
   enabled: true
-  hostPath: /mnt/labfiles
-  mountPath: /mnt/labfiles
+  hostPath: /mnt/labfiles/rag-watch
+  mountPath: /mnt/labfiles/rag-watch
   pollInterval: "60"
 
 nodeSelector:

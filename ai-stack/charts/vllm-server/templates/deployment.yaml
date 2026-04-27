@@ -30,9 +30,8 @@ spec:
           args:
             - |
               set -e
-              git clone --depth 1 {{ .Values.patches.genesisRepo }} /tmp/genesis
+              git clone --depth 1 {{ .Values.patches.genesisRepo }} /patches/genesis
               git clone --depth 1 {{ .Values.patches.recipeRepo }} /tmp/recipe
-              cp /tmp/genesis/patch_genesis_unified.py /patches/
               cp /tmp/recipe/patches/patch_tolist_cudagraph.py /patches/
           volumeMounts:
             - name: patches
@@ -46,7 +45,7 @@ spec:
             - |
               set -e
               pip install xxhash -q
-              python3 /patches/patch_genesis_unified.py
+              PYTHONPATH=/patches/genesis python3 -m vllm._genesis.patches.apply_all
               python3 /patches/patch_tolist_cudagraph.py
               exec python3 -m vllm.entrypoints.openai.api_server \
                 --model {{ .Values.model.name }} \

@@ -183,8 +183,10 @@ async def run_agent(
         max_tokens=max_tokens,
         top_p=top_p,
         model_kwargs={
-            "top_k": top_k,
-            "repetition_penalty": repetition_penalty,
+            "extra_body": {
+                "top_k": top_k,
+                "repetition_penalty": repetition_penalty,
+            }
         },
     )
 

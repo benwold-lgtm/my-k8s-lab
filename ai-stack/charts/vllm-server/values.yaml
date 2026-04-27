@@ -11,7 +11,7 @@ model:
   downloadDir: "/data"
 
 server:
-  maxModelLen: 75000
+  maxModelLen: 68000
   gpuMemoryUtilization: "0.97"
   maxNumSeqs: 1
   maxNumBatchedTokens: 2048

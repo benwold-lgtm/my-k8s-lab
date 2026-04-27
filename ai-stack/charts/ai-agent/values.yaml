@@ -13,7 +13,7 @@ service:
 
 vllm:
   baseUrl: "http://192.168.1.112:30000/v1"
-  model: "mistralai/Mistral-Nemo-Instruct-FP8-2407"
+  model: "Lorbus/Qwen3.6-27B-int4-AutoRound"
 
 secret:
   name: ai-agent-secrets   # must match the kubectl secret you created earlier

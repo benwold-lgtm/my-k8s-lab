@@ -126,6 +126,10 @@ async def run_rag_search(query: str, top_k: int = 5) -> tuple[str, list[dict]]:
     return "\n\n---\n\n".join(parts), sources
 
 
+# ── Think-tag stripper ────────────────────────────────────────────────────────
+def strip_think_tags(text: str) -> str:
+    return re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL).strip()
+
 # ── Tool call parser ──────────────────────────────────────────────────────────
 def extract_tool_calls(content: str) -> list:
     tool_calls = []
@@ -206,7 +210,7 @@ When formulating your answer after receiving tool results:
             max_tokens=max_tokens,
             top_p=top_p,
         )
-        content = response.choices[0].message.content or ""
+        content = strip_think_tags(response.choices[0].message.content or "")
 
         tool_calls = extract_tool_calls(content)
 

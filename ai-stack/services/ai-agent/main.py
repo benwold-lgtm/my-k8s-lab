@@ -170,7 +170,7 @@ def extract_tool_calls(content: str) -> list:
 async def run_agent(
     messages: list,
     temperature: float = 0.2,
-    max_tokens: int = 1024,
+    max_tokens: int = 2048,
     top_p: float = 0.9,
 ) -> tuple[str, list[dict]]:
     client = AsyncOpenAI(base_url=VLLM_BASE_URL, api_key="not-needed")
@@ -209,6 +209,7 @@ When formulating your answer after receiving tool results:
             temperature=temperature,
             max_tokens=max_tokens,
             top_p=top_p,
+            extra_body={"chat_template_kwargs": {"enable_thinking": False}},
         )
         content = strip_think_tags(response.choices[0].message.content or "")
 
@@ -251,7 +252,7 @@ class ChatCompletionRequest(BaseModel):
     messages: list[Message]
     temperature: Optional[float] = 0.2
     stream: Optional[bool] = False
-    max_tokens: Optional[int] = 1024
+    max_tokens: Optional[int] = 2048
     top_p: Optional[float] = 0.9
 
 # ── OpenAI-Compatible Endpoint ────────────────────────────────────────────────

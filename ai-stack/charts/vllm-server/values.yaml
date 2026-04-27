@@ -3,12 +3,18 @@ revisionHistoryLimit: 3
 
 image:
   repository: vllm/vllm-openai
-  tag: latest 
+  tag: latest
   pullPolicy: Always
 
 model:
-  name: "mistralai/Mistral-Nemo-Instruct-FP8-2407" # Corrected to FP8 to match your working load
+  name: "Lorbus/Qwen3.6-27B-int4-AutoRound"
   downloadDir: "/data"
+
+server:
+  maxModelLen: 75000
+  gpuMemoryUtilization: "0.97"
+  maxNumSeqs: 1
+  maxNumBatchedTokens: 2048
 
 resources:
   limits:
@@ -20,11 +26,9 @@ resources:
     memory: "16Gi"
     nvidia.com/gpu: 1
 
-# CORRECTION: hostname is the specific key for a single node
 nodeSelector:
-  kubernetes.io/hostname: bengpu1 
+  kubernetes.io/hostname: bengpu1
 
-# CORRECTION: Fixed the syntax error (was node=role, should be node-role)
 gpuNodeSelector:
   node-role.kubernetes.io/gpunode: "true"
 
@@ -35,3 +39,23 @@ service:
 
 persistence:
   pvcName: vllm-models-nfs-pvc
+
+shm:
+  sizeLimit: 16Gi
+
+env:
+  extra:
+    - name: VLLM_WORKER_MULTIPROC_METHOD
+      value: "spawn"
+    - name: NCCL_P2P_DISABLE
+      value: "1"
+    - name: VLLM_USE_FLASHINFER_SAMPLER
+      value: "1"
+    - name: VLLM_ALLOW_LONG_MAX_MODEL_LEN
+      value: "1"
+    - name: VLLM_MARLIN_USE_ATOMIC_ADD
+      value: "1"
+    - name: PYTORCH_CUDA_ALLOC_CONF
+      value: "expandable_segments:True,max_split_size_mb:512"
+    - name: CUDA_DEVICE_MAX_CONNECTIONS
+      value: "8"

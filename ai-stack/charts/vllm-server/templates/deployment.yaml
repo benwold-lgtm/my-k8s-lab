@@ -24,51 +24,55 @@ spec:
           effect: "NoSchedule"
       containers:
         - name: vllm-container
-          image: "vllm/vllm-openai:latest"
-          #we use this command to run the pip fix and the server in one squence.
-          command: ["/bin/sh", "-c"] 
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/bin/sh", "-c"]
           args:
             - |
               set -e
-              #echo "--- STAGE 1: FORCING TRANSFORMERS UPDATE ---"
-              echo "--- LAUNCHING MISTRAL_NEMO FP8 on NFS---"
+              echo "--- LAUNCHING {{ .Values.model.name }} ---"
               python3 -m vllm.entrypoints.openai.api_server \
-                --model mistralai/Mistral-Nemo-Instruct-FP8-2407 \
-                --tokenizer-mode mistral \
-                --download-dir /data \
-                --gpu-memory-utilization 0.85 \
-                --max-model-len 8192 \
-                --enforce-eager \
-                --trust-remote-code
+                --model {{ .Values.model.name }} \
+                --download-dir {{ .Values.model.downloadDir }} \
+                --quantization auto_round \
+                --dtype float16 \
+                --tensor-parallel-size 1 \
+                --max-model-len {{ .Values.server.maxModelLen }} \
+                --gpu-memory-utilization {{ .Values.server.gpuMemoryUtilization }} \
+                --max-num-seqs {{ .Values.server.maxNumSeqs }} \
+                --max-num-batched-tokens {{ .Values.server.maxNumBatchedTokens }} \
+                --kv-cache-dtype fp8_e5m2 \
+                --trust-remote-code \
+                --reasoning-parser qwen3 \
+                --enable-auto-tool-choice \
+                --tool-call-parser qwen3_coder \
+                --enable-prefix-caching \
+                --enable-chunked-prefill \
+                --no-scheduler-reserve-full-isl \
+                --speculative-config '{"method":"mtp","num_speculative_tokens":3}'
           env:
             - name: HF_TOKEN
               valueFrom:
                 secretKeyRef:
                   name: hf-token-secret
                   key: token
-            - name: PYTORCH_ALLOC_CONF
-              value: "expandable_segments:True"
+            {{- range .Values.env.extra }}
+            - name: {{ .name }}
+              value: {{ .value | quote }}
+            {{- end }}
           ports:
-            - containerPort: 8000
+            - containerPort: {{ .Values.service.port }}
           volumeMounts:
             - name: data-vol
-              mountPath: /data
-            - name: shm 
+              mountPath: {{ .Values.model.downloadDir }}
+            - name: shm
               mountPath: /dev/shm
-          resources:
-            limits:
-              cpu: "8"
-              memory: "32Gi"  
-              nvidia.com/gpu: 1
-            requests:
-              cpu: "4"
-              memory: "16Gi"
-              nvidia.com/gpu: 1
+          resources: {{ toYaml .Values.resources | nindent 12 }}
       volumes:
         - name: data-vol
           persistentVolumeClaim:
-            claimName: vllm-models-nfs-pvc # Matches the name in step 1
+            claimName: {{ .Values.persistence.pvcName }}
         - name: shm
           emptyDir:
             medium: Memory
-            sizeLimit: 8Gi
+            sizeLimit: {{ .Values.shm.sizeLimit }}

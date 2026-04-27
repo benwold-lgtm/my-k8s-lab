@@ -7,14 +7,13 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional
-from langchain_openai import ChatOpenAI
-from langchain.tools import tool
+from openai import AsyncOpenAI
 
 app = FastAPI(title="AI Agent Service")
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 VLLM_BASE_URL  = os.getenv("VLLM_BASE_URL",  "http://192.168.1.112:30000/v1")
-VLLM_MODEL     = os.getenv("VLLM_MODEL",     "mistralai/Mistral-Nemo-Instruct-FP8-2407")
+VLLM_MODEL     = os.getenv("VLLM_MODEL",     "Lorbus/Qwen3.6-27B-int4-AutoRound")
 BRAVE_API_KEY  = os.getenv("BRAVE_API_KEY")
 BRAVE_URL      = "https://api.search.brave.com/res/v1/web/search"
 QDRANT_URL     = os.getenv("QDRANT_URL",     "http://qdrant.qdrant.svc.cluster.local:6333")
@@ -23,7 +22,6 @@ EMBEDDING_URL  = os.getenv("EMBEDDING_URL",  "http://embedding.embedding.svc.clu
 
 # ── Brave Search ──────────────────────────────────────────────────────────────
 async def run_brave_search(query: str) -> str:
-    """Execute a Brave Search and return formatted results."""
     if not BRAVE_API_KEY:
         return "Error: Brave Search API key not configured."
 
@@ -65,7 +63,6 @@ async def run_brave_search(query: str) -> str:
 
 # ── RAG Search ───────────────────────────────────────────────────────────────
 async def run_rag_search(query: str, top_k: int = 5) -> tuple[str, list[dict]]:
-    """Embed query, search all Qdrant collections, return (formatted_text, sources)."""
     qdrant_headers = {"api-key": QDRANT_API_KEY} if QDRANT_API_KEY else {}
 
     async with httpx.AsyncClient(timeout=30.0) as client:
@@ -102,7 +99,6 @@ async def run_rag_search(query: str, top_k: int = 5) -> tuple[str, list[dict]]:
 
     all_hits.sort(key=lambda x: x[0], reverse=True)
 
-    # Deduplicate by URL, keeping the highest-scoring chunk per source
     seen_urls: set[str] = set()
     top_hits: list[tuple[float, dict]] = []
     for score, payload in all_hits:
@@ -132,10 +128,9 @@ async def run_rag_search(query: str, top_k: int = 5) -> tuple[str, list[dict]]:
 
 # ── Tool call parser ──────────────────────────────────────────────────────────
 def extract_tool_calls(content: str) -> list:
-    """Parse tool calls from vLLM/Mistral response content."""
     tool_calls = []
 
-    # Pattern 1: [TOOL_CALLS][{"name": ..., "arguments": {...}}]
+    # Pattern 1: Mistral format [TOOL_CALLS][{"name": ..., "arguments": {...}}]
     match = re.search(r'\[TOOL_CALLS\]\s*(\[.*?\])', content, re.DOTALL)
     if match:
         try:
@@ -145,7 +140,15 @@ def extract_tool_calls(content: str) -> list:
         except json.JSONDecodeError:
             pass
 
-    # Pattern 2: {"name": ..., "arguments": {...}}
+    # Pattern 2: Qwen3 format <tool_call>{"name": ..., "arguments": {...}}</tool_call>
+    if not tool_calls:
+        for m in re.finditer(r'<tool_call>\s*(\{.*?\})\s*</tool_call>', content, re.DOTALL):
+            try:
+                tool_calls.append(json.loads(m.group(1)))
+            except json.JSONDecodeError:
+                pass
+
+    # Pattern 3: bare JSON {"name": ..., "arguments": {...}}
     if not tool_calls:
         match = re.search(r'\{"name":\s*"(\w+)",\s*"arguments":\s*(\{.*?\})\}', content, re.DOTALL)
         if match:
@@ -166,21 +169,7 @@ async def run_agent(
     max_tokens: int = 1024,
     top_p: float = 0.9,
 ) -> tuple[str, list[dict]]:
-    """
-    Manual agent loop:
-    1. Send messages to LLM
-    2. If LLM calls a tool, execute it (rag_search or brave_search)
-    3. Append tool results and call LLM again
-    4. Return (final_response, sources) where sources are RAG chunks used
-    """
-    llm = ChatOpenAI(
-        base_url=VLLM_BASE_URL,
-        api_key="not-needed",
-        model=VLLM_MODEL,
-        temperature=temperature,
-        max_tokens=max_tokens,
-        top_p=top_p,
-    )
+    client = AsyncOpenAI(base_url=VLLM_BASE_URL, api_key="not-needed")
 
     system_prompt = """You are a helpful assistant with access to two tools:
 
@@ -200,30 +189,24 @@ When formulating your answer after receiving tool results:
 - Do NOT use your training knowledge to supplement the retrieved context.
 - Do NOT fabricate quotes or specific details not present in the retrieved context."""
 
-    # Prepend system message if not already present
     if not messages or messages[0].get("role") != "system":
         messages = [{"role": "system", "content": system_prompt}] + messages
 
-    max_iterations = 3  # prevent infinite loops
+    max_iterations = 3
     iteration = 0
     all_sources: list[dict] = []
 
     while iteration < max_iterations:
         iteration += 1
 
-        from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
-
-        lc_messages = []
-        for m in messages:
-            if m["role"] == "system":
-                lc_messages.append(SystemMessage(content=m["content"]))
-            elif m["role"] == "user":
-                lc_messages.append(HumanMessage(content=m["content"]))
-            elif m["role"] == "assistant":
-                lc_messages.append(AIMessage(content=m["content"]))
-
-        response = await llm.ainvoke(lc_messages)
-        content = response.content
+        response = await client.chat.completions.create(
+            model=VLLM_MODEL,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            top_p=top_p,
+        )
+        content = response.choices[0].message.content or ""
 
         tool_calls = extract_tool_calls(content)
 
@@ -316,7 +299,6 @@ async def chat_completions(request: ChatCompletionRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 async def stream_text(text: str):
-    """Stream a completed response word by word."""
     words = text.split(" ")
     for i, word in enumerate(words):
         chunk = word if i == len(words) - 1 else word + " "

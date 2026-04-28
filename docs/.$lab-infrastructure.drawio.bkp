@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxGraphModel dx="1422" dy="762" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1700" pageHeight="1020" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+
+    <!-- ═══ TITLE ═══ -->
+    <mxCell id="title" value="Kubernetes Lab Infrastructure" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=22;fontStyle=1;fontColor=#0043CE;" vertex="1" parent="1">
+      <mxGeometry x="440" y="8" width="820" height="36" as="geometry" />
+    </mxCell>
+
+    <!-- ═══════════════════════════════════════════════════
+         LAYER 1 — GitOps & CI/CD
+    ════════════════════════════════════════════════════ -->
+    <mxCell id="g_gitops" value="" style="rounded=1;arcSize=3;fillColor=#EDF5FF;strokeColor=#0043CE;strokeWidth=1;dashed=1;dashPattern=8 4;opacity=50;" vertex="1" parent="1">
+      <mxGeometry x="80" y="52" width="1540" height="148" as="geometry" />
+    </mxCell>
+    <mxCell id="g_gitops_lbl" value="GitOps &amp; CI/CD" style="text;html=1;align=left;strokeColor=none;fillColor=none;fontStyle=1;fontSize=11;fontColor=#0043CE;" vertex="1" parent="1">
+      <mxGeometry x="93" y="59" width="160" height="18" as="geometry" />
+    </mxCell>
+
+    <!-- GitHub repo -->
+    <mxCell id="github" value="&lt;b&gt;my-k8s-lab&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;GitHub repository&lt;/font&gt;" style="rounded=1;arcSize=15;fillColor=#24292E;strokeColor=#1B1F23;fontColor=#FFFFFF;fontSize=12;html=1;whiteSpace=wrap;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="140" y="90" width="165" height="54" as="geometry" />
+    </mxCell>
+
+    <!-- GitHub Actions -->
+    <mxCell id="actions" value="&lt;b&gt;GitHub Actions CI&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;Build &amp;amp; push Docker images&lt;/font&gt;" style="rounded=1;arcSize=15;fillColor=#1E3A5F;strokeColor=#0043CE;fontColor=#FFFFFF;fontSize=12;html=1;whiteSpace=wrap;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="392" y="90" width="165" height="54" as="geometry" />
+    </mxCell>
+
+    <!-- ghcr.io -->
+    <mxCell id="ghcr" value="&lt;b&gt;ghcr.io&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;benwold-lgtm/ registry&lt;/font&gt;" style="rounded=1;arcSize=15;fillColor=#2D333B;strokeColor=#444C56;fontColor=#FFFFFF;fontSize=12;html=1;whiteSpace=wrap;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="644" y="90" width="165" height="54" as="geometry" />
+    </mxCell>
+
+    <!-- ArgoCD (GitOps controller) -->
+    <mxCell id="argocd_ci" value="&lt;b&gt;ArgoCD&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;Watches repo · syncs cluster&lt;/font&gt;" style="rounded=1;arcSize=15;fillColor=#EF7B4D;strokeColor=#BA4E00;fontColor=#FFFFFF;fontSize=12;html=1;whiteSpace=wrap;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="896" y="90" width="165" height="54" as="geometry" />
+    </mxCell>
+
+    <!-- vmenuc / developer workstation -->
+    <mxCell id="dev" value="&lt;b&gt;vmenuc&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;kubectl · helm · VS Code&lt;/font&gt;" style="rounded=1;arcSize=15;fillColor=#393939;strokeColor=#21272A;fontColor=#FFFFFF;fontSize=12;html=1;whiteSpace=wrap;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="1375" y="90" width="165" height="54" as="geometry" />
+    </mxCell>
+
+    <!-- GitOps arrows -->
+    <mxCell id="eg1" value="git push" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#4589FF;strokeWidth=1.5;fontColor=#0043CE;fontSize=10;endArrow=block;endFill=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="dev" target="github" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="1345" y="117" />
+          <mxPoint x="330" y="117" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="eg2" value="trigger" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#0043CE;strokeWidth=1.5;fontColor=#0043CE;fontSize=10;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="github" target="actions" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="eg3" value="push image" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#0043CE;strokeWidth=1.5;fontColor=#0043CE;fontSize=10;endArrow=block;endFill=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="actions" target="ghcr" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="eg4" value="watches" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#EF7B4D;strokeWidth=1.5;fontColor=#EF7B4D;fontSize=10;endArrow=block;endFill=1;dashed=1;dashPattern=6 3;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="github" target="argocd_ci" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="335" y="156" />
+          <mxPoint x="866" y="156" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    <!-- ArgoCD deploy arrow (down into K8s layer) -->
+    <mxCell id="eg5" value="deploy" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#EF7B4D;strokeWidth=2;fontColor=#EF7B4D;fontStyle=1;fontSize=10;endArrow=block;endFill=1;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="978" y="144" as="sourcePoint" />
+        <mxPoint x="978" y="234" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+
+    <!-- ═══════════════════════════════════════════════════
+         LAYER 2 — Kubernetes Cluster
+    ════════════════════════════════════════════════════ -->
+    <mxCell id="g_k8s" value="" style="rounded=1;arcSize=2;fillColor=#F4F4F4;strokeColor=#0043CE;strokeWidth=2;dashed=1;dashPattern=10 5;opacity=40;" vertex="1" parent="1">
+      <mxGeometry x="80" y="220" width="1540" height="298" as="geometry" />
+    </mxCell>
+    <mxCell id="g_k8s_lbl" value="Kubernetes Cluster — 3 KVM VMs on vmenuc + bengpu1 bare-metal" style="text;html=1;align=left;strokeColor=none;fillColor=none;fontStyle=1;fontSize=11;fontColor=#0043CE;" vertex="1" parent="1">
+      <mxGeometry x="93" y="228" width="480" height="18" as="geometry" />
+    </mxCell>
+
+    <!-- k8s-master -->
+    <mxCell id="k8s_master" value="&lt;b&gt;k8s-master&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;192.168.1.202&lt;br&gt;API Server · etcd&lt;br&gt;kube-scheduler&lt;/font&gt;" style="rounded=1;arcSize=12;fillColor=#0043CE;strokeColor=#00236B;fontColor=#FFFFFF;fontSize=12;html=1;whiteSpace=wrap;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="110" y="258" width="155" height="92" as="geometry" />
+    </mxCell>
+
+    <!-- k8s-worker1 -->
+    <mxCell id="k8s_w1" value="&lt;b&gt;k8s-worker1&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;192.168.1.190&lt;/font&gt;" style="rounded=1;arcSize=12;fillColor=#4589FF;strokeColor=#0043CE;fontColor=#FFFFFF;fontSize=12;html=1;whiteSpace=wrap;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="110" y="362" width="155" height="56" as="geometry" />
+    </mxCell>
+
+    <!-- k8s-worker2 -->
+    <mxCell id="k8s_w2" value="&lt;b&gt;k8s-worker2&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;192.168.1.206&lt;/font&gt;" style="rounded=1;arcSize=12;fillColor=#4589FF;strokeColor=#0043CE;fontColor=#FFFFFF;fontSize=12;html=1;whiteSpace=wrap;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="110" y="430" width="155" height="56" as="geometry" />
+    </mxCell>
+
+    <!-- CNI & Networking -->
+    <mxCell id="cni_box" value="&lt;b&gt;Networking&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;Calico CNI · VXLAN CrossSubnet&lt;br&gt;NodePort · MetalLB&lt;/font&gt;" style="rounded=1;arcSize=10;fillColor=#EDF5FF;strokeColor=#0043CE;strokeWidth=1;dashed=1;fontSize=11;html=1;whiteSpace=wrap;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="288" y="258" width="205" height="72" as="geometry" />
+    </mxCell>
+
+    <!-- NFS PVCs -->
+    <mxCell id="nfs_pvcs" value="&lt;b&gt;NFS PVCs&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;• vllm-models&lt;br&gt;• ingestion-data&lt;br&gt;• open-webui&lt;br&gt;• labfiles (watch folder)&lt;/font&gt;" style="rounded=1;arcSize=10;fillColor=#F4F4F4;strokeColor=#697689;strokeWidth=1;dashed=1;fontSize=11;html=1;whiteSpace=wrap;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="288" y="342" width="205" height="108" as="geometry" />
+    </mxCell>
+
+    <!-- local-path PVC -->
+    <mxCell id="local_pvc" value="&lt;font style=&quot;font-size:10px;&quot;&gt;local-path PVC: Qdrant (bengpu1)&lt;/font&gt;" style="rounded=1;arcSize=10;fillColor=#F4F4F4;strokeColor=#697689;strokeWidth=1;dashed=1;fontSize=10;html=1;whiteSpace=wrap;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="288" y="462" width="205" height="32" as="geometry" />
+    </mxCell>
+
+    <!-- bengpu1 node boundary -->
+    <mxCell id="g_bengpu1" value="" style="rounded=1;arcSize=3;fillColor=#D0E2FF;strokeColor=#0043CE;strokeWidth=2;opacity=40;" vertex="1" parent="1">
+      <mxGeometry x="520" y="234" width="1078" height="272" as="geometry" />
+    </mxCell>
+    <mxCell id="g_bengpu1_lbl" value="bengpu1 Worker Node · RTX 3090 24 GB · AMD Ryzen 9 5900X · 128 GB RAM · 192.168.1.112" style="text;html=1;align=left;strokeColor=none;fillColor=none;fontStyle=1;fontSize=10;fontColor=#00236B;" vertex="1" parent="1">
+      <mxGeometry x="533" y="241" width="640" height="18" as="geometry" />
+    </mxCell>
+
+    <!-- Row 1 namespace boxes: vllm-server, open-webui, comfyui, ai-agent -->
+    <mxCell id="ns_vllm" value="&lt;b&gt;vllm-server&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;ns: ai-stack · :30000&lt;/font&gt;" style="rounded=1;arcSize=12;fillColor=#0043CE;strokeColor=#00236B;fontColor=#FFFFFF;fontSize=12;html=1;whiteSpace=wrap;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="540" y="264" width="235" height="60" as="geometry" />
+    </mxCell>
+    <mxCell id="ns_owui" value="&lt;b&gt;open-webui&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;ns: open-webui · :30080&lt;/font&gt;" style="rounded=1;arcSize=12;fillColor=#EDF5FF;strokeColor=#0043CE;strokeWidth=2;fontSize=12;html=1;whiteSpace=wrap;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="785" y="264" width="235" height="60" as="geometry" />
+    </mxCell>
+    <mxCell id="ns_comfyui" value="&lt;b&gt;comfyui&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;ns: comfyui · :30084&lt;/font&gt;" style="rounded=1;arcSize=12;fillColor=#F6F2FF;strokeColor=#6929C4;strokeWidth=2;fontSize=12;html=1;whiteSpace=wrap;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="1030" y="264" width="235" height="60" as="geometry" />
+    </mxCell>
+    <mxCell id="ns_agent" value="&lt;b&gt;ai-agent&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;ns: ai-agent · :30081&lt;/font&gt;" style="rounded=1;arcSize=12;fillColor=#0043CE;strokeColor=#00236B;fontColor=#FFFFFF;fontSize=12;html=1;whiteSpace=wrap;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="1275" y="264" width="235" height="60" as="geometry" />
+    </mxCell>
+
+    <!-- Row 2 namespace boxes: embedding, ingestion, qdrant, argocd -->
+    <mxCell id="ns_embed" value="&lt;b&gt;embedding&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;ns: embedding · :30082&lt;/font&gt;" style="rounded=1;arcSize=12;fillColor=#EDF5FF;strokeColor=#0043CE;strokeWidth=2;fontSize=12;html=1;whiteSpace=wrap;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="540" y="344" width="235" height="60" as="geometry" />
+    </mxCell>
+    <mxCell id="ns_ingest" value="&lt;b&gt;ingestion&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;ns: ingestion · :30083&lt;/font&gt;" style="rounded=1;arcSize=12;fillColor=#D9F0F0;strokeColor=#005D5D;strokeWidth=2;fontSize=12;html=1;whiteSpace=wrap;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="785" y="344" width="235" height="60" as="geometry" />
+    </mxCell>
+    <mxCell id="ns_qdrant" value="&lt;b&gt;qdrant&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;ns: qdrant · :30333&lt;/font&gt;" style="rounded=1;arcSize=12;fillColor=#EDF5FF;strokeColor=#0043CE;strokeWidth=2;fontSize=12;html=1;whiteSpace=wrap;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="1030" y="344" width="235" height="60" as="geometry" />
+    </mxCell>
+    <mxCell id="ns_argocd" value="&lt;b&gt;argocd&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;ns: argocd · ArgoCD server&lt;/font&gt;" style="rounded=1;arcSize=12;fillColor=#FFF1E0;strokeColor=#EF7B4D;strokeWidth=2;fontSize=12;html=1;whiteSpace=wrap;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="1275" y="344" width="235" height="60" as="geometry" />
+    </mxCell>
+
+    <!-- nodeSelector label -->
+    <mxCell id="nodeselector_lbl" value="nodeSelector: kubernetes.io/hostname=bengpu1 (all AI workloads pinned)" style="text;html=1;align=left;strokeColor=none;fillColor=none;fontStyle=2;fontSize=10;fontColor=#00236B;" vertex="1" parent="1">
+      <mxGeometry x="533" y="415" width="530" height="18" as="geometry" />
+    </mxCell>
+
+    <!-- RTX 3090 badge -->
+    <mxCell id="gpu_badge" value="&lt;b&gt;RTX 3090 · 24 GB VRAM · CUDA&lt;/b&gt;" style="rounded=1;arcSize=20;fillColor=#0043CE;strokeColor=#00236B;fontColor=#FFFFFF;fontSize=10;html=1;whiteSpace=wrap;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="1185" y="412" width="395" height="28" as="geometry" />
+    </mxCell>
+
+    <!-- ArgoCD link (K8s layer → argocd_ci in gitops layer) -->
+    <mxCell id="ek1" value="" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#EF7B4D;strokeWidth=1.5;endArrow=none;startArrow=none;dashed=1;dashPattern=4 3;" edge="1" source="ns_argocd" target="argocd_ci" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="1392" y="344" />
+          <mxPoint x="1392" y="200" />
+          <mxPoint x="978" y="200" />
+          <mxPoint x="978" y="144" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- ═══════════════════════════════════════════════════
+         LAYER 3 — Physical Network
+    ════════════════════════════════════════════════════ -->
+    <mxCell id="g_phys" value="" style="rounded=1;arcSize=2;fillColor=#E8E8E8;strokeColor=#697689;strokeWidth=2;dashed=1;dashPattern=10 5;opacity=50;" vertex="1" parent="1">
+      <mxGeometry x="80" y="534" width="1540" height="228" as="geometry" />
+    </mxCell>
+    <mxCell id="g_phys_lbl" value="Physical Layer — 192.168.1.0/24 · Unifi 1 GbE Switch" style="text;html=1;align=left;strokeColor=none;fillColor=none;fontStyle=1;fontSize=11;fontColor=#393939;" vertex="1" parent="1">
+      <mxGeometry x="93" y="541" width="420" height="18" as="geometry" />
+    </mxCell>
+
+    <!-- vmenuc host (KVM hypervisor — contains 3 VMs) -->
+    <mxCell id="phys_vmenuc" value="" style="rounded=1;arcSize=5;fillColor=#DDE1E6;strokeColor=#697689;strokeWidth=2;" vertex="1" parent="1">
+      <mxGeometry x="108" y="560" width="490" height="172" as="geometry" />
+    </mxCell>
+    <mxCell id="phys_vmenuc_lbl" value="vmenuc · 192.168.1.216 · Intel i3 · 48 GB · KVM Hypervisor" style="text;html=1;align=left;strokeColor=none;fillColor=none;fontStyle=1;fontSize=10;fontColor=#393939;" vertex="1" parent="1">
+      <mxGeometry x="118" y="566" width="420" height="16" as="geometry" />
+    </mxCell>
+
+    <!-- k8s-master VM (inside vmenuc) -->
+    <mxCell id="phys_master" value="&lt;b&gt;k8s-master&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;&quot;&gt;192.168.1.202&lt;br&gt;KVM VM&lt;/font&gt;" style="rounded=1;arcSize=12;fillColor=#0043CE;strokeColor=#00236B;fontColor=#FFFFFF;fontSize=11;html=1;whiteSpace=wrap;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="120" y="585" width="145" height="132" as="geometry" />
+    </mxCell>
+
+    <!-- k8s-worker1 VM (inside vmenuc) -->
+    <mxCell id="phys_w1" value="&lt;b&gt;k8s-worker1&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;&quot;&gt;192.168.1.190 · KVM VM&lt;/font&gt;" style="rounded=1;arcSize=12;fillColor=#4589FF;strokeColor=#0043CE;fontColor=#FFFFFF;fontSize=11;html=1;whiteSpace=wrap;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="278" y="585" width="145" height="60" as="geometry" />
+    </mxCell>
+
+    <!-- k8s-worker2 VM (inside vmenuc) -->
+    <mxCell id="phys_w2" value="&lt;b&gt;k8s-worker2&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:9px;&quot;&gt;192.168.1.206 · KVM VM&lt;/font&gt;" style="rounded=1;arcSize=12;fillColor=#4589FF;strokeColor=#0043CE;fontColor=#FFFFFF;fontSize=11;html=1;whiteSpace=wrap;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="278" y="657" width="145" height="60" as="geometry" />
+    </mxCell>
+
+    <!-- Unifi Switch -->
+    <mxCell id="phys_switch" value="&lt;b&gt;Unifi Switch&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;1 GbE&lt;/font&gt;" style="rounded=1;arcSize=10;fillColor=#393939;strokeColor=#21272A;fontColor=#FFFFFF;fontSize=12;html=1;whiteSpace=wrap;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="690" y="610" width="175" height="55" as="geometry" />
+    </mxCell>
+
+    <!-- bengpu1 physical host -->
+    <mxCell id="phys_bengpu1" value="&lt;b&gt;bengpu1&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;192.168.1.112&lt;br&gt;RTX 3090 · 24 GB VRAM&lt;br&gt;Ryzen 9 5900X · 128 GB&lt;br&gt;2 TB NVMe · 1 GbE&lt;/font&gt;" style="rounded=1;arcSize=8;fillColor=#D0E2FF;strokeColor=#0043CE;strokeWidth=2;fontSize=12;html=1;whiteSpace=wrap;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="985" y="560" width="195" height="158" as="geometry" />
+    </mxCell>
+
+    <!-- NFS Server -->
+    <mxCell id="phys_nfs" value="&lt;b&gt;NFS Server&lt;/b&gt;&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;192.168.1.250&lt;/font&gt;" style="rounded=1;arcSize=8;fillColor=#F4F4F4;strokeColor=#697689;strokeWidth=2;fontSize=12;html=1;whiteSpace=wrap;verticalAlign=middle;" vertex="1" parent="1">
+      <mxGeometry x="1255" y="598" width="185" height="62" as="geometry" />
+    </mxCell>
+
+    <!-- Network lines: hosts → switch -->
+    <!-- vmenuc → switch -->
+    <mxCell id="en1" value="" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#697689;strokeWidth=2;endArrow=none;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="598" y="638" as="sourcePoint" />
+        <mxPoint x="690" y="638" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <!-- bengpu1 → switch -->
+    <mxCell id="en2" value="" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#697689;strokeWidth=2;endArrow=none;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="985" y="638" as="sourcePoint" />
+        <mxPoint x="865" y="638" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <!-- NFS → switch -->
+    <mxCell id="en3" value="" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#697689;strokeWidth=2;endArrow=none;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="1255" y="629" as="sourcePoint" />
+        <mxPoint x="865" y="629" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+
+    <!-- NFS arrow up to storage PVCs in K8s layer -->
+    <mxCell id="en4" value="NFS mounts" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#697689;strokeWidth=1.5;fontColor=#697689;fontSize=10;endArrow=block;endFill=1;dashed=1;dashPattern=6 3;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" source="phys_nfs" target="nfs_pvcs" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="1347" y="520" />
+          <mxPoint x="390" y="520" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- ghcr pull arrow down to bengpu1 namespace area -->
+    <mxCell id="en5" value="pull image" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#2D333B;strokeWidth=1.5;fontColor=#2D333B;fontSize=10;endArrow=block;endFill=1;dashed=1;dashPattern=6 3;" edge="1" parent="1">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="727" y="144" as="sourcePoint" />
+        <mxPoint x="727" y="264" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+
+    <!-- ═══ LAYER LABELS (right side) ═══ -->
+    <mxCell id="lyr1" value="Application Layer" style="text;html=1;align=right;strokeColor=none;fillColor=none;fontStyle=1;fontSize=10;fontColor=#0043CE;rotation=-90;" vertex="1" parent="1">
+      <mxGeometry x="1630" y="290" width="130" height="18" as="geometry" />
+    </mxCell>
+    <mxCell id="lyr2" value="Kubernetes Layer" style="text;html=1;align=right;strokeColor=none;fillColor=none;fontStyle=1;fontSize=10;fontColor=#0043CE;rotation=-90;" vertex="1" parent="1">
+      <mxGeometry x="1630" y="420" width="130" height="18" as="geometry" />
+    </mxCell>
+    <mxCell id="lyr3" value="Physical Layer" style="text;html=1;align=right;strokeColor=none;fillColor=none;fontStyle=1;fontSize=10;fontColor=#697689;rotation=-90;" vertex="1" parent="1">
+      <mxGeometry x="1630" y="620" width="130" height="18" as="geometry" />
+    </mxCell>
+
+  </root>
+</mxGraphModel>

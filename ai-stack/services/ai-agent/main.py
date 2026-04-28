@@ -128,6 +128,9 @@ async def run_rag_search(query: str, top_k: int = 5) -> tuple[str, list[dict]]:
 
 # ── Think-tag stripper ────────────────────────────────────────────────────────
 def strip_think_tags(text: str) -> str:
+    if '</think>' in text:
+        after = text.split('</think>', 1)[-1].strip()
+        return after if after else text.strip()
     return re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL).strip()
 
 # ── Tool call parser ──────────────────────────────────────────────────────────
@@ -169,7 +172,7 @@ def extract_tool_calls(content: str) -> list:
 # ── Core agent loop ───────────────────────────────────────────────────────────
 async def run_agent(
     messages: list,
-    temperature: float = 0.2,
+    temperature: float = 0.7,
     max_tokens: int = 2048,
     top_p: float = 0.9,
 ) -> tuple[str, list[dict]]:
@@ -179,13 +182,13 @@ async def run_agent(
 
 1. rag_search — Search the ingested vendor documentation and knowledge base.
    Use this first for any questions about products, vendors, or technical topics.
-   Format: [TOOL_CALLS][{"name": "rag_search", "arguments": {"query": "your search query"}}]
+   Format: <tool_call>{"name": "rag_search", "arguments": {"query": "your search query"}}</tool_call>
 
 2. brave_search — Search the live internet for current information.
-   Use this for recent news, current pricing, or when rag_search returns no useful results.
-   Format: [TOOL_CALLS][{"name": "brave_search", "arguments": {"query": "your search query"}}]
+   Use this for recent news, current events, weather, pricing, or when rag_search returns no useful results.
+   Format: <tool_call>{"name": "brave_search", "arguments": {"query": "your search query"}}</tool_call>
 
-Always try rag_search first. Use brave_search only when the knowledge base lacks the answer.
+Always try rag_search first. Use brave_search when the knowledge base lacks the answer or for live/current information.
 
 When formulating your answer after receiving tool results:
 - Answer ONLY using the information returned by the tools.
@@ -250,7 +253,7 @@ class Message(BaseModel):
 class ChatCompletionRequest(BaseModel):
     model: str
     messages: list[Message]
-    temperature: Optional[float] = 0.2
+    temperature: Optional[float] = 0.7
     stream: Optional[bool] = False
     max_tokens: Optional[int] = 2048
     top_p: Optional[float] = 0.9

@@ -45,7 +45,9 @@ spec:
             - |
               set -e
               pip install xxhash -q
-              PYTHONPATH=/patches/genesis python3 -m vllm._genesis.patches.apply_all
+              VLLM_PATH=$(python3 -c "import vllm, os; print(os.path.dirname(vllm.__file__))")
+              cp -r /patches/genesis/vllm/_genesis "${VLLM_PATH}/_genesis"
+              python3 -m vllm._genesis.patches.apply_all
               python3 /patches/patch_tolist_cudagraph.py
               exec python3 -m vllm.entrypoints.openai.api_server \
                 --model {{ .Values.model.name }} \

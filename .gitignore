@@ -1,2 +1,5 @@
 # Claude Code local settings (machine-specific, not for sharing)
 .claude/settings.local.json
+
+# Graphify generated outputs (rebuilt locally, not for sharing)
+graphify-out/

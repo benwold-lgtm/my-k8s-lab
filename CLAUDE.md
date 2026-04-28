@@ -178,3 +178,12 @@ Always show a `git diff` and get explicit approval before committing or pushing.
 4. Commit and push only after explicit confirmation
 
 CI pipelines (`.github/workflows/`) build and push Docker images to `ghcr.io/benwold-lgtm` on push to `main` for the three custom services (ai-agent, embedding, ingestion).
+
+## graphify
+
+This project has a graphify knowledge graph at graphify-out/.
+
+Rules:
+- Before answering architecture or codebase questions, read graphify-out/GRAPH_REPORT.md for god nodes and community structure
+- If graphify-out/wiki/index.md exists, navigate it instead of reading raw files
+- After modifying code files in this session, run `graphify update .` to keep the graph current (AST-only, no API cost)

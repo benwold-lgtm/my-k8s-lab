@@ -454,6 +454,127 @@ async def watch_folder():
         await asyncio.sleep(WATCH_POLL_INTERVAL)
 
 
+# ── Deep crawl task ───────────────────────────────────────────────────────────
+async def ingest_deep_task(doc_id: str, request: "DeepIngestRequest"):
+    now = datetime.utcnow().isoformat()
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "UPDATE documents SET status=?, updated_at=? WHERE id=?",
+            ("processing", now, doc_id)
+        )
+        await db.commit()
+
+    try:
+        from crawl4ai.deep_crawling import BFSDeepCrawlStrategy
+        try:
+            from crawl4ai.deep_crawling.filters import URLPatternFilter, FilterChain
+            filter_chain = FilterChain([URLPatternFilter(patterns=[request.include_pattern])]) \
+                if request.include_pattern else None
+            strategy = BFSDeepCrawlStrategy(
+                max_depth=request.max_depth,
+                max_pages=request.max_pages,
+                filter_chain=filter_chain,
+            )
+        except ImportError:
+            strategy = BFSDeepCrawlStrategy(
+                max_depth=request.max_depth,
+                max_pages=request.max_pages,
+            )
+
+        base_config = dict(
+            cache_mode=CacheMode.BYPASS,
+            wait_until="domcontentloaded",
+            page_timeout=45000,
+            remove_overlay_elements=True,
+            excluded_tags=["nav", "footer", "header", "aside"],
+            word_count_threshold=10,
+            magic=True,
+        )
+
+        async with crawl_semaphore:
+            async with AsyncWebCrawler(headless=True) as crawler:
+                results = await crawler.arun(
+                    url=request.url,
+                    config=CrawlerRunConfig(**base_config, deep_crawl_strategy=strategy),
+                )
+
+        if not isinstance(results, list):
+            results = [results]
+
+        pages_ingested = 0
+        total_chunks = 0
+
+        for result in results:
+            if not result.success or not result.markdown:
+                continue
+
+            page_url = result.url
+            title = (result.metadata or {}).get("title", "").strip() or page_url
+            text = re.sub(r'\s+', ' ', result.markdown).strip()
+
+            if len(text) < 100:
+                continue
+
+            page_doc_id = hashlib.sha256(page_url.encode()).hexdigest()[:16]
+            content_hash = hashlib.sha256(text.encode()).hexdigest()
+            page_now = datetime.utcnow().isoformat()
+
+            async with aiosqlite.connect(DB_PATH) as db:
+                await db.execute("""
+                    INSERT OR REPLACE INTO documents
+                    (id, url, collection, vendor, source_type, status, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, 'deep_crawl', 'processing', ?, ?)
+                """, (page_doc_id, page_url, request.collection, request.vendor, page_now, page_now))
+                await db.commit()
+
+            try:
+                chunk_count = await run_pipeline(
+                    page_doc_id, page_url, title, text, content_hash,
+                    request.collection, request.vendor,
+                    request.access_roles, request.classification, "deep_crawl"
+                )
+                pages_ingested += 1
+                total_chunks += chunk_count
+
+                async with aiosqlite.connect(DB_PATH) as db:
+                    await db.execute("""
+                        UPDATE documents
+                        SET status=?, title=?, content_hash=?, chunk_count=?, updated_at=?, last_checked=?
+                        WHERE id=?
+                    """, ("completed", title, content_hash, chunk_count, page_now, page_now, page_doc_id))
+                    await db.commit()
+
+            except Exception as e:
+                async with aiosqlite.connect(DB_PATH) as db:
+                    await db.execute(
+                        "UPDATE documents SET status=?, error=?, updated_at=? WHERE id=?",
+                        ("failed", str(e), page_now, page_doc_id)
+                    )
+                    await db.commit()
+
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute("""
+                UPDATE documents
+                SET status=?, title=?, chunk_count=?, updated_at=?, last_checked=?
+                WHERE id=?
+            """, (
+                "completed",
+                f"Deep crawl: {request.url} ({pages_ingested} pages)",
+                total_chunks, now, now, doc_id
+            ))
+            await db.commit()
+
+    except Exception as e:
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute(
+                "UPDATE documents SET status=?, error=?, updated_at=? WHERE id=?",
+                ("failed", str(e), now, doc_id)
+            )
+            await db.commit()
+        raise
+
+
 # ── Request/Response models ───────────────────────────────────────────────────
 class IngestRequest(BaseModel):
     url: str
@@ -464,6 +585,16 @@ class IngestRequest(BaseModel):
 
 class BatchIngestRequest(BaseModel):
     documents: list[IngestRequest]
+
+class DeepIngestRequest(BaseModel):
+    url: str
+    collection: str
+    vendor: str
+    max_depth: int = 2
+    max_pages: int = 30
+    include_pattern: Optional[str] = None
+    access_roles: Optional[list[str]] = ["all"]
+    classification: Optional[str] = "public"
 
 class CollectionCreateRequest(BaseModel):
     name: str
@@ -513,6 +644,25 @@ async def ingest_batch(request: BatchIngestRequest, background_tasks: Background
         results.append({"doc_id": doc_id, "url": doc.url, "status": "pending"})
 
     return {"submitted": len(results), "documents": results}
+
+@app.post("/ingest/deep")
+async def ingest_deep(request: DeepIngestRequest, background_tasks: BackgroundTasks):
+    doc_id = hashlib.sha256(request.url.encode()).hexdigest()[:16]
+    now = datetime.utcnow().isoformat()
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("""
+            INSERT OR REPLACE INTO documents
+            (id, url, collection, vendor, source_type, status, created_at, updated_at)
+            VALUES (?, ?, ?, ?, 'deep_crawl', 'pending', ?, ?)
+        """, (doc_id, request.url, request.collection, request.vendor, now, now))
+        await db.commit()
+
+    background_tasks.add_task(ingest_deep_task, doc_id, request)
+
+    return {"doc_id": doc_id, "status": "pending",
+            "message": f"Deep crawl started for {request.url}"}
+
 
 @app.post("/ingest/document")
 async def ingest_document(

@@ -4,6 +4,9 @@ revisionHistoryLimit: 3
 image:
   repository: vllm/vllm-openai
   tag: nightly
+  # Pin to the Genesis-v7.14-compatible nightly (0.19.2rc1.dev21+g893611813, 2026-04-20).
+  # Clear this to float on :nightly again once Genesis patches track the current nightly.
+  digest: "sha256:9bba4628a3b943e0dd33caefb94b811569ba1e97bdf23bee19a265c31b947ccb"
   pullPolicy: Always
 
 model:
